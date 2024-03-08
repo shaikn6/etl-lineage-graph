@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@9/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --color-bg: #f8fafc;
+      --color-surface: #ffffff;
+      --color-border: #e2e8f0;
+      --color-text: #1e293b;
+      --color-text-muted: #64748b;
+      --color-accent: #3b82f6;
+      --color-source: #d4edda;
+      --color-derived: #cce5ff;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.6;
+    }
+
+    header {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .75rem;
+      font-weight: 600;
+      padding: .2rem .6rem;
+      border-radius: 99px;
+      background: var(--color-accent);
+      color: #fff;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+      display: grid;
+      gap: 2rem;
+    }
+
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: .875rem 1.25rem;
+      border-bottom: 1px solid var(--color-border);
+      font-size: .875rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .card-body {
+      padding: 1.25rem;
+    }
+
+    /* Mermaid diagram */
+    .diagram-wrap {
+      overflow-x: auto;
+      padding: 1.5rem;
+      background: #fafbfc;
+      border-radius: var(--radius);
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Stats bar */
+    .stats {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: .2rem;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--color-accent);
+    }
+
+    .stat-label {
+      font-size: .75rem;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem;
+    }
+
+    th {
+      text-align: left;
+      padding: .6rem .875rem;
+      border-bottom: 2px solid var(--color-border);
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    td {
+      padding: .6rem .875rem;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: #f8fafc; }
+
+    .pill {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 600;
+      padding: .15rem .5rem;
+      border-radius: 99px;
+    }
+
+    .pill-source { background: var(--color-source); color: #155724; }
+    .pill-derived { background: var(--color-derived); color: #004085; }
+
+    .tt-badge {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 600;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+      background: #f1f5f9;
+      color: var(--color-text-muted);
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--color-text-muted);
+      font-size: .8rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>{{ title }}</h1>
+  <span class="badge">{{ node_count }} tables</span>
+  <span class="badge">{{ edge_count }} edges</span>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="card">
+    <div class="card-header">Summary</div>
+    <div class="card-body">
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-value">{{ node_count }}</span>
+          <span class="stat-label">Total Tables</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ edge_count }}</span>
+          <span class="stat-label">Lineage Edges</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ table_rows | selectattr('is_source') | list | length }}</span>
+          <span class="stat-label">Source Tables</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ table_rows | rejectattr('is_source') | list | length }}</span>
+          <span class="stat-label">Derived Tables</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lineage Diagram -->
+  <div class="card">
+    <div class="card-header">Lineage Diagram</div>
+    <div class="card-body">
+      <div class="diagram-wrap">
+        <div class="mermaid">
+{{ mermaid_diagram }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Inventory -->
+  <div class="card">
+    <div class="card-header">Table Inventory</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Table</th>
+          <th>Type</th>
+          <th>Upstream</th>
+          <th>Downstream</th>
+          <th>Last Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in table_rows %}
+        <tr>
+          <td><strong>{{ row.name }}</strong></td>
+          <td>
+            {% if row.is_source %}
+            <span class="pill pill-source">source</span>
+            {% else %}
+            <span class="pill pill-derived">derived</span>
+            {% endif %}
+          </td>
+          <td>{{ row.upstream_count }}</td>
+          <td>{{ row.downstream_count }}</td>
+          <td>{{ row.last_updated }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Edge Details -->
+  <div class="card">
+    <div class="card-header">Data Flow Edges</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Source</th>
+          <th>Target</th>
+          <th>Transform</th>
+          <th>Pipeline</th>
+          <th>Mapped Columns</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for edge in edges %}
+        <tr>
+          <td>{{ edge.source }}</td>
+          <td>{{ edge.target }}</td>
+          <td><span class="tt-badge">{{ edge.transformation_type or '—' }}</span></td>
+          <td>{{ edge.pipeline_name or '—' }}</td>
+          <td>
+            {% if edge.column_mappings %}
+              {% for m in edge.column_mappings[:3] %}
+                <code style="font-size:.75rem;">{{ m.target_col }} ← {{ m.source_expression }}</code><br>
+              {% endfor %}
+              {% if edge.column_mappings | length > 3 %}
+                <span style="color:var(--color-text-muted);font-size:.75rem;">+{{ edge.column_mappings | length - 3 }} more</span>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer>
+  Generated by etl-lineage-graph &mdash; automated column-level ETL lineage tracking
+</footer>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "default" });
+</script>
+</body>
+</html>

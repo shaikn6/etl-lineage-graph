@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: lineage
+      POSTGRES_PASSWORD: lineage
+      POSTGRES_DB: lineage
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lineage"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://lineage:lineage@db:5432/lineage
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./lineage:/app/lineage
+      - ./examples:/app/examples
+    command: uvicorn lineage.api:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
