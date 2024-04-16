@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ETL Lineage Graph Explorer</title>
+  <style>
+    :root {
+      --bg-base: #0d1117;
+      --bg-panel: #161b22;
+      --bg-card: #21262d;
+      --border: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --accent: #58a6ff;
+      --accent-glow: rgba(88, 166, 255, 0.15);
+      --raw:     #e74c3c;
+      --staging: #f39c12;
+      --mart:    #27ae60;
+      --arrow:   #8b949e;
+      --duration-fast: 150ms;
+      --duration-normal: 300ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), #a371f7);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 1px;
+    }
+
+    .badge {
+      margin-left: auto;
+      font-size: 0.7rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.25rem 0.75rem;
+      color: var(--text-secondary);
+      font-family: 'Courier New', monospace;
+    }
+
+    /* ── Main layout ──────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      grid-template-rows: 1fr;
+      gap: 0;
+      overflow: hidden;
+    }
+
+    /* ── Panels ───────────────────────────────────────────── */
+    .panel {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel:last-child {
+      border-right: none;
+      border-left: 1px solid var(--border);
+    }
+
+    .panel-header {
+      padding: 1rem 1.25rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-header h2 {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+    }
+
+    .panel-body {
+      padding: 1.25rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* ── Search input ─────────────────────────────────────── */
+    .search-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .search-group label {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .search-group input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      padding: 0.55rem 0.75rem;
+      font-size: 0.85rem;
+      font-family: 'Courier New', monospace;
+      transition: border-color var(--duration-fast);
+      outline: none;
+    }
+
+    .search-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .btn-trace {
+      width: 100%;
+      padding: 0.6rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity var(--duration-fast);
+      margin-top: 0.25rem;
+    }
+
+    .btn-trace:hover { opacity: 0.85; }
+
+    /* ── Legend ───────────────────────────────────────────── */
+    .legend {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .legend-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-raw     { background: var(--raw); }
+    .dot-staging { background: var(--staging); }
+    .dot-mart    { background: var(--mart); }
+
+    /* ── Center: lineage canvas ───────────────────────────── */
+    .canvas-area {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-base);
+      overflow: hidden;
+    }
+
+    .canvas-topbar {
+      padding: 0.85rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-panel);
+    }
+
+    .canvas-topbar h2 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .canvas-topbar span {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+
+    .canvas-inner {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      overflow: auto;
+    }
+
+    /* ── SVG lineage diagram ──────────────────────────────── */
+    .lineage-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      max-width: 620px;
+    }
+
+    /* Each "column" in the pipeline */
+    .lineage-columns {
+      display: grid;
+      grid-template-columns: 1fr 60px 1fr 60px 1fr;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+    }
+
+    .lineage-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    /* Table node box */
+    .tnode {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-family: 'Courier New', monospace;
+      color: var(--text-primary);
+      width: 100%;
+      max-width: 160px;
+      transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+      cursor: default;
+    }
+
+    .tnode:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .tnode.active {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.08);
+    }
+
+    /* Connector column */
+    .connector-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      height: 100%;
+    }
+
+    .arrow-line {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .arrow-line .line {
+      width: 2px;
+      height: 30px;
+      background: var(--arrow);
+      position: relative;
+    }
+
+    .arrow-line .arrowhead {
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 8px solid var(--arrow);
+    }
+
+    /* Column labels */
+    .col-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.3rem 0.7rem;
+      border-radius: 20px;
+      margin-bottom: 0.75rem;
+    }
+
+    .col-label.raw     { background: rgba(231,76,60,0.15);  color: var(--raw); }
+    .col-label.staging { background: rgba(243,156,18,0.15); color: var(--staging); }
+    .col-label.mart    { background: rgba(39,174,96,0.15);  color: var(--mart); }
+
+    /* ── Right panel: Impact results ──────────────────────── */
+    .impact-summary {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .impact-count {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .impact-label {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .affected-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .affected-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.85rem;
+      transition: border-color var(--duration-fast);
+    }
+
+    .affected-item:hover { border-color: var(--accent); }
+
+    .affected-name {
+      font-family: 'Courier New', monospace;
+      font-size: 0.78rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .distance-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .distance-badge.d1 { border-color: var(--staging); color: var(--staging); }
+    .distance-badge.d2 { border-color: #e67e22;        color: #e67e22; }
+    .distance-badge.d3 { border-color: var(--raw);     color: var(--raw); }
+
+    .impact-score {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--raw);
+      background: rgba(231,76,60,0.1);
+      border: 1px solid rgba(231,76,60,0.3);
+      border-radius: 4px;
+      padding: 0.2rem 0.55rem;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    footer {
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      padding: 0.6rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────── -->
+<header>
+  <div class="logo-icon" aria-hidden="true">⟨⟩</div>
+  <div>
+    <h1>ETL Lineage Graph Explorer</h1>
+    <p>Column-level data lineage from SQL pipelines — no manual annotation</p>
+  </div>
+  <span class="badge">FastAPI · networkx · sqlparse</span>
+</header>
+
+<!-- ── Main ──────────────────────────────────────────────── -->
+<main>
+
+  <!-- Left panel: search -->
+  <aside class="panel" aria-label="Table search">
+    <div class="panel-header">
+      <h2>Trace Lineage</h2>
+    </div>
+    <div class="panel-body">
+      <div class="search-group">
+        <label for="table-input">Enter table name</label>
+        <input
+          id="table-input"
+          type="text"
+          value="raw.orders"
+          placeholder="e.g. raw.orders"
+          aria-label="Table name to trace"
+        />
+        <button class="btn-trace" onclick="traceLineage()">
+          Trace Lineage
+        </button>
+      </div>
+
+      <div class="legend">
+        <p class="legend-title">Layer legend</p>
+        <div class="legend-item"><span class="dot dot-raw"></span> Raw layer (source)</div>
+        <div class="legend-item"><span class="dot dot-staging"></span> Staging layer</div>
+        <div class="legend-item"><span class="dot dot-mart"></span> Mart layer (served)</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Center: lineage visualization -->
+  <section class="canvas-area" aria-label="Lineage diagram">
+    <div class="canvas-topbar">
+      <h2>Lineage: <span id="active-table">raw.orders</span></h2>
+      <span>Retail ETL Pipeline · 7 edges · 4 hops</span>
+    </div>
+    <div class="canvas-inner">
+      <div class="lineage-diagram" role="img" aria-label="Data lineage flow diagram">
+
+        <div class="lineage-columns">
+
+          <!-- Raw column -->
+          <div class="lineage-col">
+            <span class="col-label raw">Raw</span>
+            <div class="tnode active">
+              <span class="dot dot-raw"></span>raw.orders
+            </div>
+            <div class="tnode">
+              <span class="dot dot-raw"></span>raw.customers
+            </div>
+            <div class="tnode">
+              <span class="dot dot-raw"></span>raw.products
+            </div>
+          </div>
+
+          <!-- Arrow col 1 -->
+          <div class="connector-col" aria-hidden="true">
+            <div class="arrow-line"><div class="line"></div><div class="arrowhead"></div></div>
+            <div class="arrow-line"><div class="line"></div><div class="arrowhead"></div></div>
+            <div class="arrow-line"><div class="line"></div><div class="arrowhead"></div></div>
+          </div>
+
+          <!-- Staging column -->
+          <div class="lineage-col">
+            <span class="col-label staging">Staging</span>
+            <div class="tnode">
+              <span class="dot dot-staging"></span>staging.orders
+            </div>
+            <div class="tnode">
+              <span class="dot dot-staging"></span>staging.customers
+            </div>
+            <div class="tnode">
+              <span class="dot dot-staging"></span>staging.products
+            </div>
+          </div>
+
+          <!-- Arrow col 2 -->
+          <div class="connector-col" aria-hidden="true">
+            <div class="arrow-line"><div class="line"></div><div class="arrowhead"></div></div>
+            <div class="arrow-line"><div class="line"></div><div class="arrowhead"></div></div>
+            <div class="arrow-line"><div class="line"></div><div class="arrowhead"></div></div>
+          </div>
+
+          <!-- Mart column -->
+          <div class="lineage-col">
+            <span class="col-label mart">Mart</span>
+            <div class="tnode">
+              <span class="dot dot-mart"></span>mart.daily_sales
+            </div>
+            <div style="height:2.5rem"></div><!-- spacer to align with 3 rows -->
+            <div class="tnode">
+              <span class="dot dot-mart"></span>mart.sales_performance
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Right panel: impact results -->
+  <aside class="panel" aria-label="Impact analysis results">
+    <div class="panel-header">
+      <h2>Impact Analysis</h2>
+    </div>
+    <div class="panel-body">
+      <div class="impact-score">&#9888; HIGH impact</div>
+
+      <div class="impact-summary">
+        <div class="impact-count">3</div>
+        <div class="impact-label">downstream tables affected</div>
+      </div>
+
+      <div class="affected-list">
+        <div class="affected-item">
+          <span class="affected-name">
+            <span class="dot dot-staging"></span>staging.orders
+          </span>
+          <span class="distance-badge d1">dist 1</span>
+        </div>
+        <div class="affected-item">
+          <span class="affected-name">
+            <span class="dot dot-mart"></span>mart.daily_sales
+          </span>
+          <span class="distance-badge d2">dist 2</span>
+        </div>
+        <div class="affected-item">
+          <span class="affected-name">
+            <span class="dot dot-mart"></span>mart.sales_performance
+          </span>
+          <span class="distance-badge d3">dist 3</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+</main>
+
+<!-- ── Footer ────────────────────────────────────────────── -->
+<footer>
+  <span>etl-lineage-graph · <a href="https://github.com/shaikn6/etl-lineage-graph" target="_blank" rel="noopener">shaikn6/etl-lineage-graph</a></span>
+  <span>API: <code>GET /impact/{table}</code> · <code>GET /lineage/{table}</code></span>
+</footer>
+
+<script>
+  function traceLineage() {
+    const val = document.getElementById('table-input').value.trim();
+    if (!val) return;
+    document.getElementById('active-table').textContent = val;
+
+    // Highlight the matching node (simple demo)
+    document.querySelectorAll('.tnode').forEach(el => {
+      el.classList.toggle('active', el.textContent.trim() === val);
+    });
+  }
+
+  // Allow Enter key in input
+  document.getElementById('table-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') traceLineage();
+  });
+</script>
+
+</body>
+</html>

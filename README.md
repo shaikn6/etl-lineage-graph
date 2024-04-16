@@ -1,3 +1,8 @@
+> 🔒 **Private Repository** — Source code available on request for verified employers and collaborators.
+> 📧 Contact: shaikn6@udayton.edu | [LinkedIn](https://linkedin.com/in/nagizaazshaik)
+
+---
+
 # etl-lineage-graph
 
 [![CI](https://github.com/shaikn6/etl-lineage-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/shaikn6/etl-lineage-graph/actions/workflows/ci.yml)
@@ -253,6 +258,19 @@ etl-lineage-graph/
 | Persistence | SQLAlchemy + PostgreSQL | 1.4 / 13 |
 | Testing | pytest | 7.x |
 | Runtime | Python | 3.9 |
+
+---
+
+## Screenshots
+
+### Data Lineage Graph
+![Lineage Graph](docs/screenshots/lineage_graph.png)
+
+### Impact Analysis
+![Impact Analysis](docs/screenshots/impact_analysis.png)
+
+### API Response Demo
+![API Demo](docs/screenshots/api_demo.png)
 
 ---
 
