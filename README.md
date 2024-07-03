@@ -1,9 +1,13 @@
-> 🔒 **Private Repository** — Source code available on request for verified employers and collaborators.
-> 📧 Contact: shaikn6@udayton.edu | [LinkedIn](https://linkedin.com/in/nagizaazshaik)
 
 ---
 
 # etl-lineage-graph
+
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-22c55e)
+![Tests](https://img.shields.io/badge/Tests-passing-22c55e)
+![Stack](https://img.shields.io/badge/Stack-sqlparse-6366f1)
+
 
 [![CI](https://github.com/shaikn6/etl-lineage-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/shaikn6/etl-lineage-graph/actions/workflows/ci.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -12,6 +16,16 @@
 Auto-discovers **column-level data lineage** from SQL/ETL pipelines using directed graph analysis — no manual annotation required.
 
 ---
+
+## Quick Start
+
+```bash
+git clone https://github.com/shaikn6/etl-lineage-graph.git
+cd etl-lineage-graph
+pip install -r requirements.txt
+pytest tests/                    # run test suite
+streamlit run dashboard/app_v2.py    # launch dashboard
+```
 
 ## The Problem (Situation)
 
