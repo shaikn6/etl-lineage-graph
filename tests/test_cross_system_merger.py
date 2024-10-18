@@ -16,26 +16,32 @@ from parsers.spark_lineage_parser import parse_spark_code
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 def _sql_graph() -> LineageGraph:
     g = LineageGraph()
-    g.ingest([
-        LineageNode(
-            target_table="staging.orders",
-            source_tables=["source.raw_orders"],
-            column_mappings=[ColumnMapping("order_id", "order_id"), ColumnMapping("amount", "price*qty")],
-            transformation_type="filter",
-            raw_sql="INSERT INTO staging.orders SELECT order_id, price*qty AS amount FROM source.raw_orders",
-            pipeline_name="etl",
-        ),
-        LineageNode(
-            target_table="mart.revenue",
-            source_tables=["staging.orders"],
-            column_mappings=[ColumnMapping("total", "SUM(amount)")],
-            transformation_type="aggregate",
-            raw_sql="INSERT INTO mart.revenue SELECT SUM(amount) AS total FROM staging.orders GROUP BY 1",
-            pipeline_name="etl",
-        ),
-    ])
+    g.ingest(
+        [
+            LineageNode(
+                target_table="staging.orders",
+                source_tables=["source.raw_orders"],
+                column_mappings=[
+                    ColumnMapping("order_id", "order_id"),
+                    ColumnMapping("amount", "price*qty"),
+                ],
+                transformation_type="filter",
+                raw_sql="INSERT INTO staging.orders SELECT order_id, price*qty AS amount FROM source.raw_orders",
+                pipeline_name="etl",
+            ),
+            LineageNode(
+                target_table="mart.revenue",
+                source_tables=["staging.orders"],
+                column_mappings=[ColumnMapping("total", "SUM(amount)")],
+                transformation_type="aggregate",
+                raw_sql="INSERT INTO mart.revenue SELECT SUM(amount) AS total FROM staging.orders GROUP BY 1",
+                pipeline_name="etl",
+            ),
+        ]
+    )
     return g
 
 
@@ -48,14 +54,23 @@ spark.read = types.SimpleNamespace()
 """
     # Use direct SparkLineageNode construction for deterministic test data
     from parsers.spark_lineage_parser import SparkLineageNode, SparkDataset
+
     return SparkLineageNode(
         pipeline_name="spark_etl",
         sources=[
-            SparkDataset(path="s3://lake/raw/orders/", format="parquet", dataset_type="source"),
-            SparkDataset(path="s3://lake/raw/events/", format="parquet", dataset_type="source"),
+            SparkDataset(
+                path="s3://lake/raw/orders/", format="parquet", dataset_type="source"
+            ),
+            SparkDataset(
+                path="s3://lake/raw/events/", format="parquet", dataset_type="source"
+            ),
         ],
         sinks=[
-            SparkDataset(path="s3://lake/processed/orders/", format="parquet", dataset_type="sink"),
+            SparkDataset(
+                path="s3://lake/processed/orders/",
+                format="parquet",
+                dataset_type="sink",
+            ),
         ],
         transformations=[],
         intermediate_vars=[],
@@ -104,6 +119,7 @@ def _airflow_tasks():
 # SQL graph ingestion
 # ---------------------------------------------------------------------------
 
+
 class TestSQLIngestion:
     def test_sql_nodes_added(self):
         m = CrossSystemMerger()
@@ -128,6 +144,7 @@ class TestSQLIngestion:
 # ---------------------------------------------------------------------------
 # Spark ingestion
 # ---------------------------------------------------------------------------
+
 
 class TestSparkIngestion:
     def test_spark_source_nodes_added(self):
@@ -160,6 +177,7 @@ class TestSparkIngestion:
 # dbt ingestion
 # ---------------------------------------------------------------------------
 
+
 class TestDbtIngestion:
     def test_dbt_model_nodes_added(self):
         m = CrossSystemMerger()
@@ -186,6 +204,7 @@ class TestDbtIngestion:
 # Airflow ingestion
 # ---------------------------------------------------------------------------
 
+
 class TestAirflowIngestion:
     def test_airflow_tasks_added(self):
         m = CrossSystemMerger()
@@ -210,6 +229,7 @@ class TestAirflowIngestion:
 # Cross-system edge detection
 # ---------------------------------------------------------------------------
 
+
 class TestCrossSystemEdges:
     def _merger_with_all(self) -> CrossSystemMerger:
         m = CrossSystemMerger()
@@ -229,8 +249,7 @@ class TestCrossSystemEdges:
         cross_edges = m.detect_cross_system_edges()
         # Airflow task writes s3://lake/raw/orders/ → Spark reads same path
         found = any(
-            "airflow" in e["source"] and "spark" in e["target"]
-            for e in cross_edges
+            "airflow" in e["source"] and "spark" in e["target"] for e in cross_edges
         )
         assert found, f"Expected airflow→spark edge; got: {cross_edges}"
 
@@ -244,6 +263,7 @@ class TestCrossSystemEdges:
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
+
 
 class TestMergerUtilities:
     def test_system_coverage_stats(self):

@@ -158,7 +158,9 @@ def api_demo_png() -> None:
     # Title bar
     ax.add_patch(
         mpatches.FancyBboxPatch(
-            (0.02, 0.88), 0.96, 0.08,
+            (0.02, 0.88),
+            0.96,
+            0.08,
             boxstyle="round,pad=0.01",
             facecolor="#21262d",
             edgecolor="#30363d",
@@ -166,10 +168,13 @@ def api_demo_png() -> None:
         )
     )
     ax.text(
-        0.5, 0.92,
+        0.5,
+        0.92,
         "  terminal — etl-lineage-graph  ",
-        ha="center", va="center",
-        fontsize=10, color="#8b949e",
+        ha="center",
+        va="center",
+        fontsize=10,
+        color="#8b949e",
         fontfamily="monospace",
     )
 
@@ -202,8 +207,11 @@ def api_demo_png() -> None:
     for text, color, bold in lines:
         if text and color:
             ax.text(
-                0.05, y, text,
-                ha="left", va="top",
+                0.05,
+                y,
+                text,
+                ha="left",
+                va="top",
                 fontsize=8.5,
                 color=color,
                 fontfamily="monospace",

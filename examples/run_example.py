@@ -65,7 +65,9 @@ def main() -> None:
     graph.ingest(all_nodes)
 
     print("-" * 65)
-    print(f"Graph built: {len(graph.all_tables())} tables, {len(graph.all_edges())} edges")
+    print(
+        f"Graph built: {len(graph.all_tables())} tables, {len(graph.all_edges())} edges"
+    )
     print("-" * 65)
 
     # Topological order

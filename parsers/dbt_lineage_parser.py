@@ -21,9 +21,11 @@ from typing import Dict, List, Optional, Tuple
 # Data models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DbtColumn:
     """Column-level lineage within a dbt model."""
+
     target_col: str
     source_expression: str
     source_model: Optional[str] = None  # resolved ref() name if derivable
@@ -45,6 +47,7 @@ class DbtModelNode:
         tags:             list of dbt tags
         description:      model description from schema.yml
     """
+
     model_name: str
     warehouse_table: str
     ref_deps: List[str] = field(default_factory=list)
@@ -69,7 +72,9 @@ class DbtModelNode:
 # ---------------------------------------------------------------------------
 
 # Match {{ ref('model_name') }} or {{ ref("model_name") }}
-_REF_PATTERN = re.compile(r"""\{\{\s*ref\s*\(\s*['"]([^'"]+)['"]\s*\)\s*\}\}""", re.IGNORECASE)
+_REF_PATTERN = re.compile(
+    r"""\{\{\s*ref\s*\(\s*['"]([^'"]+)['"]\s*\)\s*\}\}""", re.IGNORECASE
+)
 
 # Match {{ source('source_name', 'table_name') }}
 _SOURCE_PATTERN = re.compile(
@@ -83,19 +88,16 @@ _CONFIG_PATTERN = re.compile(
 )
 
 # Match SELECT column list (simplified — handles most common patterns)
-_SELECT_PATTERN = re.compile(
-    r"""SELECT\s+(.*?)\s+FROM""", re.IGNORECASE | re.DOTALL
-)
+_SELECT_PATTERN = re.compile(r"""SELECT\s+(.*?)\s+FROM""", re.IGNORECASE | re.DOTALL)
 
 # Match column alias: expression AS alias
-_COL_ALIAS_PATTERN = re.compile(
-    r"""(.*?)\s+AS\s+(\w+)\s*$""", re.IGNORECASE
-)
+_COL_ALIAS_PATTERN = re.compile(r"""(.*?)\s+AS\s+(\w+)\s*$""", re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------
 # SQL / Jinja helpers
 # ---------------------------------------------------------------------------
+
 
 def _strip_jinja(sql: str) -> str:
     """Replace Jinja expressions with placeholder identifiers for SQL parsing."""
@@ -195,6 +197,7 @@ def _extract_column_lineage(sql: str, model_name: str) -> List[DbtColumn]:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def parse_dbt_model(
     sql: str,
     model_name: str,
@@ -261,7 +264,9 @@ def parse_dbt_project(
     # Load schema.yml descriptions if present
     descriptions: Dict[str, str] = {}
     tags_map: Dict[str, List[str]] = {}
-    schema_files = list(models_path.rglob("schema.yml")) + list(models_path.rglob("*.yml"))
+    schema_files = list(models_path.rglob("schema.yml")) + list(
+        models_path.rglob("*.yml")
+    )
     for schema_file in schema_files:
         _parse_schema_yaml(schema_file, descriptions, tags_map)
 

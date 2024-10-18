@@ -33,6 +33,7 @@ import networkx as nx
 # Unified node descriptor
 # ---------------------------------------------------------------------------
 
+
 class NodeType:
     SOURCE_TABLE = "SourceTable"
     SPARK_DATASET = "SparkDataset"
@@ -47,6 +48,7 @@ class AirflowTaskNode:
     Lightweight descriptor for an Airflow task's lineage.
     No actual Airflow dependency required — pass task metadata directly.
     """
+
     dag_id: str
     task_id: str
     operator: str = "PythonOperator"
@@ -65,6 +67,7 @@ class AirflowTaskNode:
 # ---------------------------------------------------------------------------
 # Cross-system merger
 # ---------------------------------------------------------------------------
+
 
 class CrossSystemMerger:
     """
@@ -112,7 +115,8 @@ class CrossSystemMerger:
             src = edge["source"]
             tgt = edge["target"]
             self._g.add_edge(
-                src, tgt,
+                src,
+                tgt,
                 system="sql",
                 transformation_type=edge.get("transformation_type", ""),
                 column_mappings=edge.get("column_mappings", []),
@@ -143,7 +147,11 @@ class CrossSystemMerger:
                     label=ds.path,
                     system="spark",
                     node_type=NodeType.SPARK_DATASET,
-                    metadata={"format": ds.format, "dataset_type": "source", "pipeline": sn.pipeline_name},
+                    metadata={
+                        "format": ds.format,
+                        "dataset_type": "source",
+                        "pipeline": sn.pipeline_name,
+                    },
                 )
                 self._register_path(ds.path, nid)
                 source_ids.append(nid)
@@ -156,7 +164,11 @@ class CrossSystemMerger:
                     label=ds.path,
                     system="spark",
                     node_type=NodeType.SPARK_DATASET,
-                    metadata={"format": ds.format, "dataset_type": "sink", "pipeline": sn.pipeline_name},
+                    metadata={
+                        "format": ds.format,
+                        "dataset_type": "sink",
+                        "pipeline": sn.pipeline_name,
+                    },
                 )
                 self._register_path(ds.path, nid)
                 sink_ids.append(nid)
@@ -165,7 +177,8 @@ class CrossSystemMerger:
             for src_id in source_ids:
                 for sink_id in sink_ids:
                     self._g.add_edge(
-                        src_id, sink_id,
+                        src_id,
+                        sink_id,
                         system="spark",
                         pipeline_name=sn.pipeline_name,
                         transformation_type="spark_pipeline",
@@ -180,11 +193,29 @@ class CrossSystemMerger:
                     out = f"spark::{t.output_var}" if t.output_var else None
                     for var_id in [left, right]:
                         if not self._g.has_node(var_id):
-                            self._add_node(var_id, t.input_vars[0], "spark", NodeType.SPARK_DATASET, {})
+                            self._add_node(
+                                var_id,
+                                t.input_vars[0],
+                                "spark",
+                                NodeType.SPARK_DATASET,
+                                {},
+                            )
                         if out:
                             if not self._g.has_node(out):
-                                self._add_node(out, t.output_var, "spark", NodeType.SPARK_DATASET, {})
-                            self._g.add_edge(var_id, out, system="spark", transformation_type="join", column_mappings=[])
+                                self._add_node(
+                                    out,
+                                    t.output_var,
+                                    "spark",
+                                    NodeType.SPARK_DATASET,
+                                    {},
+                                )
+                            self._g.add_edge(
+                                var_id,
+                                out,
+                                system="spark",
+                                transformation_type="join",
+                                column_mappings=[],
+                            )
 
     def add_dbt_nodes(self, dbt_nodes: List[Any]) -> None:
         """
@@ -231,11 +262,15 @@ class CrossSystemMerger:
                 if not self._g.has_node(ref_nid):
                     self._add_node(ref_nid, ref_model, "dbt", NodeType.DBT_MODEL, {})
                 self._g.add_edge(
-                    ref_nid, nid,
+                    ref_nid,
+                    nid,
                     system="dbt",
                     transformation_type="ref",
                     column_mappings=[
-                        {"target_col": c.target_col, "source_expression": c.source_expression}
+                        {
+                            "target_col": c.target_col,
+                            "source_expression": c.source_expression,
+                        }
                         for c in mn.column_lineage
                     ],
                 )
@@ -251,7 +286,13 @@ class CrossSystemMerger:
                         {"source_name": src_name, "table_name": tbl_name},
                     )
                 self._register_path(f"{src_name}.{tbl_name}", src_id)
-                self._g.add_edge(src_id, nid, system="dbt", transformation_type="source", column_mappings=[])
+                self._g.add_edge(
+                    src_id,
+                    nid,
+                    system="dbt",
+                    transformation_type="source",
+                    column_mappings=[],
+                )
 
     def add_airflow_tasks(self, tasks: List[AirflowTaskNode]) -> None:
         """
@@ -292,7 +333,13 @@ class CrossSystemMerger:
                 up_full = f"{task.dag_id}.{upstream_task_id}"
                 up_nid = dag_task_index.get(up_full)
                 if up_nid:
-                    self._g.add_edge(up_nid, nid, system="airflow", transformation_type="dag_dependency", column_mappings=[])
+                    self._g.add_edge(
+                        up_nid,
+                        nid,
+                        system="airflow",
+                        transformation_type="dag_dependency",
+                        column_mappings=[],
+                    )
 
     def detect_cross_system_edges(self) -> List[Dict[str, Any]]:
         """
@@ -325,16 +372,19 @@ class CrossSystemMerger:
 
             # Add edges from each earlier system to later systems
             for i, (sys_a, nid_a) in enumerate(flat):
-                for sys_b, nid_b in flat[i + 1:]:
+                for sys_b, nid_b in flat[i + 1 :]:
                     if sys_a != sys_b and not self._g.has_edge(nid_a, nid_b):
                         self._g.add_edge(
-                            nid_a, nid_b,
+                            nid_a,
+                            nid_b,
                             system="cross",
                             transformation_type=f"{sys_a}_to_{sys_b}",
                             shared_path=path,
                             column_mappings=[],
                         )
-                        added_edges.append({"source": nid_a, "target": nid_b, "path": path})
+                        added_edges.append(
+                            {"source": nid_a, "target": nid_b, "path": path}
+                        )
 
         return added_edges
 
@@ -398,7 +448,11 @@ class CrossSystemMerger:
                 label=label,
                 system=system,
                 node_type=node_type,
-                **{k: v for k, v in metadata.items() if k not in ("label", "system", "node_type")},
+                **{
+                    k: v
+                    for k, v in metadata.items()
+                    if k not in ("label", "system", "node_type")
+                },
             )
 
     def _register_path(self, path: str, node_id: str) -> None:

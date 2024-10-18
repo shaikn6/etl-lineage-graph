@@ -59,7 +59,10 @@ class LineageGraph:
                 src,
                 node.target_table,
                 column_mappings=[
-                    {"target_col": m.target_col, "source_expression": m.source_expression}
+                    {
+                        "target_col": m.target_col,
+                        "source_expression": m.source_expression,
+                    }
                     for m in node.column_mappings
                 ],
                 transformation_type=node.transformation_type,
@@ -172,9 +175,6 @@ class LineageGraph:
     def as_dict(self) -> Dict[str, Any]:
         """Serialise the full graph to a plain dict (nodes + edges)."""
         return {
-            "nodes": [
-                {"table": n, **dict(self._g.nodes[n])}
-                for n in self._g.nodes
-            ],
+            "nodes": [{"table": n, **dict(self._g.nodes[n])} for n in self._g.nodes],
             "edges": self.all_edges(),
         }

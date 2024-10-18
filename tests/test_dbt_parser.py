@@ -18,6 +18,7 @@ from parsers.dbt_lineage_parser import (
 # ref() and source() extraction
 # ---------------------------------------------------------------------------
 
+
 class TestDbtRefExtraction:
     def test_single_ref(self):
         sql = "SELECT * FROM {{ ref('stg_orders') }}"
@@ -25,11 +26,13 @@ class TestDbtRefExtraction:
         assert "stg_orders" in node.ref_deps
 
     def test_multiple_refs(self):
-        sql = textwrap.dedent("""\
+        sql = textwrap.dedent(
+            """\
             SELECT o.order_id, c.name
             FROM {{ ref('stg_orders') }} o
             JOIN {{ ref('stg_customers') }} c ON o.customer_id = c.id
-        """)
+        """
+        )
         node = parse_dbt_model(sql, "orders_enriched")
         assert "stg_orders" in node.ref_deps
         assert "stg_customers" in node.ref_deps
@@ -45,11 +48,13 @@ class TestDbtRefExtraction:
         assert ("raw", "orders") in node.source_deps
 
     def test_multiple_sources(self):
-        sql = textwrap.dedent("""\
+        sql = textwrap.dedent(
+            """\
             SELECT o.order_id, c.name
             FROM {{ source('raw', 'orders') }} o
             JOIN {{ source('raw', 'customers') }} c ON o.customer_id = c.id
-        """)
+        """
+        )
         node = parse_dbt_model(sql, "enriched")
         assert ("raw", "orders") in node.source_deps
         assert ("raw", "customers") in node.source_deps
@@ -65,6 +70,7 @@ class TestDbtRefExtraction:
 # Warehouse table mapping
 # ---------------------------------------------------------------------------
 
+
 class TestWarehouseTableMapping:
     def test_default_mapping(self):
         sql = "SELECT 1"
@@ -73,7 +79,9 @@ class TestWarehouseTableMapping:
 
     def test_custom_database_schema(self):
         sql = "SELECT 1"
-        node = parse_dbt_model(sql, "fact_orders", database="prod_db", schema="reporting")
+        node = parse_dbt_model(
+            sql, "fact_orders", database="prod_db", schema="reporting"
+        )
         assert node.warehouse_table == "prod_db.reporting.fact_orders"
 
     def test_model_name_preserved(self):
@@ -85,6 +93,7 @@ class TestWarehouseTableMapping:
 # ---------------------------------------------------------------------------
 # Materialization
 # ---------------------------------------------------------------------------
+
 
 class TestMaterialization:
     def test_table_materialization(self):
@@ -112,16 +121,19 @@ class TestMaterialization:
 # Column-level lineage
 # ---------------------------------------------------------------------------
 
+
 class TestColumnLineage:
     def test_alias_extracted(self):
-        sql = textwrap.dedent("""\
+        sql = textwrap.dedent(
+            """\
             {{ config(materialized='table') }}
             SELECT
                 customer_id,
                 price * qty AS amount,
                 region AS customer_region
             FROM {{ ref('stg_orders') }}
-        """)
+        """
+        )
         node = parse_dbt_model(sql, "orders_fact")
         target_cols = [c.target_col for c in node.column_lineage]
         assert "amount" in target_cols
@@ -149,13 +161,16 @@ class TestColumnLineage:
 # all_upstream property
 # ---------------------------------------------------------------------------
 
+
 class TestAllUpstream:
     def test_all_upstream_combines_refs_and_sources(self):
-        sql = textwrap.dedent("""\
+        sql = textwrap.dedent(
+            """\
             SELECT o.id, s.name
             FROM {{ ref('stg_orders') }} o
             JOIN {{ source('crm', 'contacts') }} s ON o.customer_id = s.id
-        """)
+        """
+        )
         node = parse_dbt_model(sql, "enriched")
         upstream = node.all_upstream
         assert "stg_orders" in upstream
@@ -166,14 +181,11 @@ class TestAllUpstream:
 # Dependency graph builder
 # ---------------------------------------------------------------------------
 
+
 class TestDependencyGraph:
     def test_build_graph_from_nodes(self):
-        node_a = parse_dbt_model(
-            "SELECT * FROM {{ ref('raw_orders') }}", "stg_orders"
-        )
-        node_b = parse_dbt_model(
-            "SELECT * FROM {{ ref('stg_orders') }}", "orders_fact"
-        )
+        node_a = parse_dbt_model("SELECT * FROM {{ ref('raw_orders') }}", "stg_orders")
+        node_b = parse_dbt_model("SELECT * FROM {{ ref('stg_orders') }}", "orders_fact")
         graph = build_dbt_dependency_graph([node_a, node_b])
         assert "orders_fact" in graph
         assert "stg_orders" in graph["orders_fact"]

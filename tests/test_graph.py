@@ -6,7 +6,9 @@ from lineage.graph import LineageGraph
 from lineage.parser import ColumnMapping, LineageNode
 
 
-def _make_node(target: str, sources: list[str], t_type: str = "passthrough") -> LineageNode:
+def _make_node(
+    target: str, sources: list[str], t_type: str = "passthrough"
+) -> LineageNode:
     return LineageNode(
         target_table=target,
         source_tables=sources,
@@ -20,6 +22,7 @@ def _make_node(target: str, sources: list[str], t_type: str = "passthrough") -> 
 # ---------------------------------------------------------------------------
 # Basic node / edge creation
 # ---------------------------------------------------------------------------
+
 
 class TestGraphConstruction:
     def test_add_node(self):
@@ -66,15 +69,18 @@ class TestGraphConstruction:
 # Upstream / downstream queries
 # ---------------------------------------------------------------------------
 
+
 class TestUpstreamDownstream:
     def _build_chain(self) -> LineageGraph:
         """Build: source.raw → staging.orders → warehouse.daily → mart.sales"""
         g = LineageGraph()
-        g.ingest([
-            _make_node("staging.orders", ["source.raw"]),
-            _make_node("warehouse.daily", ["staging.orders"]),
-            _make_node("mart.sales", ["warehouse.daily"]),
-        ])
+        g.ingest(
+            [
+                _make_node("staging.orders", ["source.raw"]),
+                _make_node("warehouse.daily", ["staging.orders"]),
+                _make_node("mart.sales", ["warehouse.daily"]),
+            ]
+        )
         return g
 
     def test_upstream_of_leaf(self):
@@ -115,14 +121,17 @@ class TestUpstreamDownstream:
 # Impact analysis
 # ---------------------------------------------------------------------------
 
+
 class TestImpactAnalysis:
     def test_changing_source_affects_all(self):
         g = LineageGraph()
-        g.ingest([
-            _make_node("staging.orders", ["source.raw"]),
-            _make_node("warehouse.daily", ["staging.orders"]),
-            _make_node("mart.sales", ["warehouse.daily"]),
-        ])
+        g.ingest(
+            [
+                _make_node("staging.orders", ["source.raw"]),
+                _make_node("warehouse.daily", ["staging.orders"]),
+                _make_node("mart.sales", ["warehouse.daily"]),
+            ]
+        )
         result = g.get_impact_analysis("source.raw")
         affected = {item["table"] for item in result["affected_tables"]}
         assert "staging.orders" in affected
@@ -131,10 +140,12 @@ class TestImpactAnalysis:
 
     def test_changing_mid_node_skips_upstream(self):
         g = LineageGraph()
-        g.ingest([
-            _make_node("staging.orders", ["source.raw"]),
-            _make_node("warehouse.daily", ["staging.orders"]),
-        ])
+        g.ingest(
+            [
+                _make_node("staging.orders", ["source.raw"]),
+                _make_node("warehouse.daily", ["staging.orders"]),
+            ]
+        )
         result = g.get_impact_analysis("staging.orders")
         affected = {item["table"] for item in result["affected_tables"]}
         assert "warehouse.daily" in affected
@@ -142,20 +153,24 @@ class TestImpactAnalysis:
 
     def test_affected_count(self):
         g = LineageGraph()
-        g.ingest([
-            _make_node("b", ["a"]),
-            _make_node("c", ["a"]),
-            _make_node("d", ["b", "c"]),
-        ])
+        g.ingest(
+            [
+                _make_node("b", ["a"]),
+                _make_node("c", ["a"]),
+                _make_node("d", ["b", "c"]),
+            ]
+        )
         result = g.get_impact_analysis("a")
         assert result["affected_count"] >= 3
 
     def test_critical_path_present(self):
         g = LineageGraph()
-        g.ingest([
-            _make_node("staging.orders", ["source.raw"]),
-            _make_node("mart.sales", ["staging.orders"]),
-        ])
+        g.ingest(
+            [
+                _make_node("staging.orders", ["source.raw"]),
+                _make_node("mart.sales", ["staging.orders"]),
+            ]
+        )
         result = g.get_impact_analysis("source.raw")
         mart_item = next(
             (x for x in result["affected_tables"] if x["table"] == "mart.sales"), None
@@ -169,13 +184,16 @@ class TestImpactAnalysis:
 # Topological order
 # ---------------------------------------------------------------------------
 
+
 class TestTopologicalOrder:
     def test_topological_order_correct(self):
         g = LineageGraph()
-        g.ingest([
-            _make_node("b", ["a"]),
-            _make_node("c", ["b"]),
-        ])
+        g.ingest(
+            [
+                _make_node("b", ["a"]),
+                _make_node("c", ["b"]),
+            ]
+        )
         order = g.topological_order()
         assert order.index("a") < order.index("b")
         assert order.index("b") < order.index("c")
@@ -184,6 +202,7 @@ class TestTopologicalOrder:
 # ---------------------------------------------------------------------------
 # Edge lineage
 # ---------------------------------------------------------------------------
+
 
 class TestEdgeLineage:
     def test_edge_lineage_returns_column_mappings(self):
@@ -213,6 +232,7 @@ class TestEdgeLineage:
 # ---------------------------------------------------------------------------
 # as_dict serialisation
 # ---------------------------------------------------------------------------
+
 
 class TestSerialization:
     def test_as_dict_structure(self):

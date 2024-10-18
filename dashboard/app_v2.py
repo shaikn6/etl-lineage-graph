@@ -61,7 +61,8 @@ st.markdown(_CSS, unsafe_allow_html=True)
 # Demo data builders
 # ---------------------------------------------------------------------------
 
-_DEMO_SQL = textwrap.dedent("""\
+_DEMO_SQL = textwrap.dedent(
+    """\
     INSERT INTO staging.orders (order_id, customer_id, amount)
     SELECT o.order_id, o.customer_id, o.price * o.qty AS amount
     FROM source.raw_orders o WHERE o.status = 'confirmed';
@@ -77,9 +78,11 @@ _DEMO_SQL = textwrap.dedent("""\
     INSERT INTO mart.regional_revenue (region, total_revenue)
     SELECT region, SUM(amount) AS total_revenue
     FROM warehouse.orders_enriched GROUP BY region;
-""")
+"""
+)
 
-_DEMO_SPARK = textwrap.dedent("""\
+_DEMO_SPARK = textwrap.dedent(
+    """\
     from pyspark.sql import SparkSession
     spark = SparkSession.builder.getOrCreate()
 
@@ -94,9 +97,11 @@ _DEMO_SPARK = textwrap.dedent("""\
 
     summary.write.parquet("s3://datalake/processed/order_summary/")
     orders_clean.write.parquet("s3://datalake/processed/clean_orders/")
-""")
+"""
+)
 
-_DEMO_DBT_ORDERS = textwrap.dedent("""\
+_DEMO_DBT_ORDERS = textwrap.dedent(
+    """\
     {{ config(materialized='table') }}
 
     SELECT
@@ -107,9 +112,11 @@ _DEMO_DBT_ORDERS = textwrap.dedent("""\
         c.region
     FROM {{ ref('stg_orders') }} o
     JOIN {{ ref('stg_customers') }} c ON o.customer_id = c.customer_id
-""")
+"""
+)
 
-_DEMO_DBT_REVENUE = textwrap.dedent("""\
+_DEMO_DBT_REVENUE = textwrap.dedent(
+    """\
     {{ config(materialized='view') }}
 
     SELECT
@@ -118,22 +125,27 @@ _DEMO_DBT_REVENUE = textwrap.dedent("""\
         COUNT(order_id) AS order_count
     FROM {{ ref('orders_enriched') }}
     GROUP BY region
-""")
+"""
+)
 
-_DEMO_DBT_STG_ORDERS = textwrap.dedent("""\
+_DEMO_DBT_STG_ORDERS = textwrap.dedent(
+    """\
     {{ config(materialized='view') }}
 
     SELECT order_id, customer_id, price * qty AS amount, status
     FROM {{ source('raw', 'orders') }}
     WHERE status = 'confirmed'
-""")
+"""
+)
 
-_DEMO_DBT_STG_CUSTOMERS = textwrap.dedent("""\
+_DEMO_DBT_STG_CUSTOMERS = textwrap.dedent(
+    """\
     {{ config(materialized='view') }}
 
     SELECT customer_id, TRIM(first_name || ' ' || last_name) AS full_name, region
     FROM {{ source('raw', 'customers') }}
-""")
+"""
+)
 
 
 @st.cache_resource
@@ -148,10 +160,18 @@ def _build_demo_data():
 
     # dbt nodes
     dbt_nodes = [
-        parse_dbt_model(_DEMO_DBT_STG_ORDERS, "stg_orders", description="Staged orders"),
-        parse_dbt_model(_DEMO_DBT_STG_CUSTOMERS, "stg_customers", description="Staged customers"),
-        parse_dbt_model(_DEMO_DBT_ORDERS, "orders_enriched", description="Enriched orders fact"),
-        parse_dbt_model(_DEMO_DBT_REVENUE, "regional_revenue", description="Revenue by region"),
+        parse_dbt_model(
+            _DEMO_DBT_STG_ORDERS, "stg_orders", description="Staged orders"
+        ),
+        parse_dbt_model(
+            _DEMO_DBT_STG_CUSTOMERS, "stg_customers", description="Staged customers"
+        ),
+        parse_dbt_model(
+            _DEMO_DBT_ORDERS, "orders_enriched", description="Enriched orders fact"
+        ),
+        parse_dbt_model(
+            _DEMO_DBT_REVENUE, "regional_revenue", description="Revenue by region"
+        ),
     ]
 
     # Airflow tasks
@@ -207,19 +227,29 @@ with st.sidebar:
     st.markdown("Cross-system lineage spanning SQL, Spark, dbt, and Airflow.")
     st.divider()
     st.markdown("**Systems covered**")
-    for name, color in [("SQL", "#4A90D9"), ("Spark", "#F5A623"), ("dbt", "#7ED321"), ("Airflow", "#9B59B6")]:
-        st.markdown(f'<span class="system-chip" style="background:{color}">{name}</span>', unsafe_allow_html=True)
+    for name, color in [
+        ("SQL", "#4A90D9"),
+        ("Spark", "#F5A623"),
+        ("dbt", "#7ED321"),
+        ("Airflow", "#9B59B6"),
+    ]:
+        st.markdown(
+            f'<span class="system-chip" style="background:{color}">{name}</span>',
+            unsafe_allow_html=True,
+        )
 
 # ---------------------------------------------------------------------------
 # Tabs
 # ---------------------------------------------------------------------------
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "SQL Lineage (V1)",
-    "Cross-System Graph",
-    "Impact Analysis",
-    "System Comparison",
-])
+tab1, tab2, tab3, tab4 = st.tabs(
+    [
+        "SQL Lineage (V1)",
+        "Cross-System Graph",
+        "Impact Analysis",
+        "System Comparison",
+    ]
+)
 
 data = _build_demo_data()
 
@@ -229,13 +259,17 @@ data = _build_demo_data()
 
 with tab1:
     st.subheader("SQL Column-Level Lineage")
-    st.markdown("Parse SQL ETL pipelines to extract table dependencies and column-level mappings.")
+    st.markdown(
+        "Parse SQL ETL pipelines to extract table dependencies and column-level mappings."
+    )
 
     col_left, col_right = st.columns([2, 3])
 
     with col_left:
         st.markdown("**SQL Input**")
-        sql_input = st.text_area("Paste your SQL pipeline:", value=_DEMO_SQL, height=280)
+        sql_input = st.text_area(
+            "Paste your SQL pipeline:", value=_DEMO_SQL, height=280
+        )
         pipeline_name = st.text_input("Pipeline name (optional)", value="retail_etl")
 
         if st.button("Parse SQL", type="primary"):
@@ -262,12 +296,14 @@ with tab1:
         if gd["edges"]:
             rows = []
             for e in gd["edges"]:
-                rows.append({
-                    "Source": e["source"],
-                    "Target": e["target"],
-                    "Transform": e.get("transformation_type", ""),
-                    "Pipeline": e.get("pipeline_name", ""),
-                })
+                rows.append(
+                    {
+                        "Source": e["source"],
+                        "Target": e["target"],
+                        "Transform": e.get("transformation_type", ""),
+                        "Pipeline": e.get("pipeline_name", ""),
+                    }
+                )
             st.dataframe(rows, use_container_width=True)
         else:
             st.info("No edges yet — parse SQL above.")
@@ -282,11 +318,19 @@ with tab1:
             parsed = []
 
     for node in parsed:
-        with st.expander(f"{node.target_table} ← {', '.join(node.source_tables) or 'N/A'}"):
+        with st.expander(
+            f"{node.target_table} ← {', '.join(node.source_tables) or 'N/A'}"
+        ):
             st.markdown(f"**Transform type:** `{node.transformation_type}`")
             if node.column_mappings:
                 st.dataframe(
-                    [{"Target Column": m.target_col, "Source Expression": m.source_expression} for m in node.column_mappings],
+                    [
+                        {
+                            "Target Column": m.target_col,
+                            "Source Expression": m.source_expression,
+                        }
+                        for m in node.column_mappings
+                    ],
                     use_container_width=True,
                 )
             else:
@@ -298,21 +342,32 @@ with tab1:
 
 with tab2:
     st.subheader("Cross-System Unified Lineage Graph")
-    st.markdown("Unified graph spanning SQL, Spark, dbt, and Airflow — with cross-system edge detection.")
+    st.markdown(
+        "Unified graph spanning SQL, Spark, dbt, and Airflow — with cross-system edge detection."
+    )
 
     merger = data["merger"]
     stats = merger.system_coverage_stats()
 
     cols = st.columns(5)
-    for idx, (system, color) in enumerate([
-        ("sql", "#4A90D9"), ("spark", "#F5A623"), ("dbt", "#7ED321"), ("airflow", "#9B59B6")
-    ]):
+    for idx, (system, color) in enumerate(
+        [
+            ("sql", "#4A90D9"),
+            ("spark", "#F5A623"),
+            ("dbt", "#7ED321"),
+            ("airflow", "#9B59B6"),
+        ]
+    ):
         count = stats.get(system, 0)
         with cols[idx]:
             st.metric(system.upper(), count, help=f"Nodes from {system} system")
 
     with cols[4]:
-        cross_count = sum(1 for _, _, d in merger.unified_graph.edges(data=True) if d.get("system") == "cross")
+        cross_count = sum(
+            1
+            for _, _, d in merger.unified_graph.edges(data=True)
+            if d.get("system") == "cross"
+        )
         st.metric("Cross-system edges", cross_count)
 
     st.divider()
@@ -323,16 +378,23 @@ with tab2:
         st.markdown("**All nodes**")
         all_nodes = merger.all_nodes()
         display_nodes = []
-        system_colors = {"sql": "#4A90D9", "spark": "#F5A623", "dbt": "#7ED321", "airflow": "#9B59B6"}
+        system_colors = {
+            "sql": "#4A90D9",
+            "spark": "#F5A623",
+            "dbt": "#7ED321",
+            "airflow": "#9B59B6",
+        }
         for n in all_nodes:
             sys = n.get("system", "unknown")
             color = system_colors.get(sys, "#ccc")
-            display_nodes.append({
-                "ID": n["id"],
-                "Label": n.get("label", ""),
-                "System": sys.upper(),
-                "Type": n.get("node_type", ""),
-            })
+            display_nodes.append(
+                {
+                    "ID": n["id"],
+                    "Label": n.get("label", ""),
+                    "System": sys.upper(),
+                    "Type": n.get("node_type", ""),
+                }
+            )
         st.dataframe(display_nodes, use_container_width=True, height=300)
 
     with col_detail:
@@ -340,7 +402,14 @@ with tab2:
         ce = data["cross_edges"]
         if ce:
             st.dataframe(
-                [{"Source": e["source"], "Target": e["target"], "Shared Path": e["path"]} for e in ce],
+                [
+                    {
+                        "Source": e["source"],
+                        "Target": e["target"],
+                        "Shared Path": e["path"],
+                    }
+                    for e in ce
+                ],
                 use_container_width=True,
             )
         else:
@@ -349,7 +418,15 @@ with tab2:
         st.markdown("**Unified edges**")
         all_edges = merger.all_edges()
         st.dataframe(
-            [{"Source": e["source"][:40], "Target": e["target"][:40], "System": e.get("system",""), "Transform": e.get("transformation_type","")} for e in all_edges],
+            [
+                {
+                    "Source": e["source"][:40],
+                    "Target": e["target"][:40],
+                    "System": e.get("system", ""),
+                    "Transform": e.get("transformation_type", ""),
+                }
+                for e in all_edges
+            ],
             use_container_width=True,
             height=200,
         )
@@ -359,8 +436,11 @@ with tab2:
     if st.button("Generate cross_system_lineage.html"):
         try:
             from viz.cross_system_viz import CrossSystemViz
+
             viz = CrossSystemViz(merger.unified_graph)
-            out_path = str(Path(__file__).parent.parent / "docs" / "cross_system_lineage.html")
+            out_path = str(
+                Path(__file__).parent.parent / "docs" / "cross_system_lineage.html"
+            )
             actual_path = viz.export_html(output_path=out_path)
             st.success(f"Exported to: `{actual_path}`")
         except Exception as e:
@@ -383,10 +463,23 @@ with tab3:
         st.markdown("**Configure change**")
         all_node_ids = [n["id"] for n in merger.all_nodes()]
         # Default to a SQL source table
-        default_node = next((n for n in all_node_ids if "source" in n.lower()), all_node_ids[0] if all_node_ids else "")
-        selected_node = st.selectbox("Changed node", all_node_ids, index=all_node_ids.index(default_node) if default_node in all_node_ids else 0)
-        changed_column = st.text_input("Changed column (leave blank for whole-table)", value="amount")
-        change_type = st.selectbox("Change type", ["rename", "drop", "type_change", "add"])
+        default_node = next(
+            (n for n in all_node_ids if "source" in n.lower()),
+            all_node_ids[0] if all_node_ids else "",
+        )
+        selected_node = st.selectbox(
+            "Changed node",
+            all_node_ids,
+            index=(
+                all_node_ids.index(default_node) if default_node in all_node_ids else 0
+            ),
+        )
+        changed_column = st.text_input(
+            "Changed column (leave blank for whole-table)", value="amount"
+        )
+        change_type = st.selectbox(
+            "Change type", ["rename", "drop", "type_change", "add"]
+        )
 
         if st.button("Run simulation", type="primary"):
             report = simulator.simulate(
@@ -413,17 +506,23 @@ with tab3:
         m4.metric("Fix est.", f"{report.total_fix_hours:.1f}h")
 
         if report.impacted_nodes:
-            sev_colors = {Severity.BREAKING: "🔴", Severity.WARNING: "🟡", Severity.OK: "🟢"}
+            sev_colors = {
+                Severity.BREAKING: "🔴",
+                Severity.WARNING: "🟡",
+                Severity.OK: "🟢",
+            }
             rows = []
             for n in report.impacted_nodes:
-                rows.append({
-                    "Sev": sev_colors.get(n.severity, ""),
-                    "Node": n.label[:40],
-                    "System": n.system.upper(),
-                    "Hop": n.hop_distance,
-                    "Fix hrs": n.fix_hours,
-                    "Reason": n.reason[:60],
-                })
+                rows.append(
+                    {
+                        "Sev": sev_colors.get(n.severity, ""),
+                        "Node": n.label[:40],
+                        "System": n.system.upper(),
+                        "Hop": n.hop_distance,
+                        "Fix hrs": n.fix_hours,
+                        "Reason": n.reason[:60],
+                    }
+                )
             st.dataframe(rows, use_container_width=True, height=300)
         else:
             st.info("No downstream nodes impacted.")
@@ -433,7 +532,15 @@ with tab3:
     top_risk = simulator.top_risk_nodes(top_n=8)
     if top_risk:
         st.dataframe(
-            [{"Node": r["label"][:40], "System": r["system"].upper(), "Out-degree": r["out_degree"], "Centrality": r["centrality_score"]} for r in top_risk],
+            [
+                {
+                    "Node": r["label"][:40],
+                    "System": r["system"].upper(),
+                    "Out-degree": r["out_degree"],
+                    "Centrality": r["centrality_score"],
+                }
+                for r in top_risk
+            ],
             use_container_width=True,
         )
 
@@ -461,7 +568,12 @@ with tab4:
 
     # Per-system stats
     systems = ["sql", "spark", "dbt", "airflow"]
-    colors = {"sql": "#4A90D9", "spark": "#F5A623", "dbt": "#7ED321", "airflow": "#9B59B6"}
+    colors = {
+        "sql": "#4A90D9",
+        "spark": "#F5A623",
+        "dbt": "#7ED321",
+        "airflow": "#9B59B6",
+    }
 
     rows = []
     for sys in systems:
@@ -471,12 +583,14 @@ with tab4:
         for n in sys_nodes:
             nt = g.nodes[n].get("node_type", "unknown")
             node_types[nt] = node_types.get(nt, 0) + 1
-        rows.append({
-            "System": sys.upper(),
-            "Nodes": len(sys_nodes),
-            "Edges": len(sys_edges),
-            "Node Types": ", ".join(f"{k}({v})" for k, v in node_types.items()),
-        })
+        rows.append(
+            {
+                "System": sys.upper(),
+                "Nodes": len(sys_nodes),
+                "Edges": len(sys_edges),
+                "Node Types": ", ".join(f"{k}({v})" for k, v in node_types.items()),
+            }
+        )
 
     st.dataframe(rows, use_container_width=True)
 
@@ -510,7 +624,9 @@ with tab4:
 
     st.divider()
     st.markdown("**Cross-system edge detection logic**")
-    st.code(textwrap.dedent("""\
+    st.code(
+        textwrap.dedent(
+            """\
         # CrossSystemMerger.detect_cross_system_edges()
         # Shared path index: normalized path → [node_ids from different systems]
         # Ordering: airflow → sql → spark → dbt
@@ -518,4 +634,7 @@ with tab4:
         #        Spark reads  s3://datalake/raw/orders/
         #        → cross-system edge: airflow::ingest_dag.extract_orders
         #                           → spark::s3://datalake/raw/orders/
-    """), language="python")
+    """
+        ),
+        language="python",
+    )

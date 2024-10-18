@@ -19,22 +19,62 @@ from impact.propagation_simulator import (
 # Fixtures: build test graphs
 # ---------------------------------------------------------------------------
 
+
 def _linear_graph() -> nx.DiGraph:
     """source → staging → warehouse → mart (4 nodes, 3 edges)."""
     g = nx.DiGraph()
     nodes = [
-        ("source.orders", {"system": "sql", "node_type": "SourceTable", "label": "source.orders"}),
-        ("staging.orders", {"system": "sql", "node_type": "SinkTable", "label": "staging.orders"}),
-        ("warehouse.daily", {"system": "sql", "node_type": "SinkTable", "label": "warehouse.daily"}),
-        ("mart.revenue", {"system": "sql", "node_type": "SinkTable", "label": "mart.revenue"}),
+        (
+            "source.orders",
+            {"system": "sql", "node_type": "SourceTable", "label": "source.orders"},
+        ),
+        (
+            "staging.orders",
+            {"system": "sql", "node_type": "SinkTable", "label": "staging.orders"},
+        ),
+        (
+            "warehouse.daily",
+            {"system": "sql", "node_type": "SinkTable", "label": "warehouse.daily"},
+        ),
+        (
+            "mart.revenue",
+            {"system": "sql", "node_type": "SinkTable", "label": "mart.revenue"},
+        ),
     ]
     for nid, attrs in nodes:
         g.add_node(nid, **attrs)
 
     edges = [
-        ("source.orders", "staging.orders", {"column_mappings": [{"target_col": "amount", "source_expression": "amount"}], "system": "sql"}),
-        ("staging.orders", "warehouse.daily", {"column_mappings": [{"target_col": "total", "source_expression": "SUM(amount)"}], "system": "sql"}),
-        ("warehouse.daily", "mart.revenue", {"column_mappings": [{"target_col": "revenue", "source_expression": "total"}], "system": "sql"}),
+        (
+            "source.orders",
+            "staging.orders",
+            {
+                "column_mappings": [
+                    {"target_col": "amount", "source_expression": "amount"}
+                ],
+                "system": "sql",
+            },
+        ),
+        (
+            "staging.orders",
+            "warehouse.daily",
+            {
+                "column_mappings": [
+                    {"target_col": "total", "source_expression": "SUM(amount)"}
+                ],
+                "system": "sql",
+            },
+        ),
+        (
+            "warehouse.daily",
+            "mart.revenue",
+            {
+                "column_mappings": [
+                    {"target_col": "revenue", "source_expression": "total"}
+                ],
+                "system": "sql",
+            },
+        ),
     ]
     for src, tgt, d in edges:
         g.add_edge(src, tgt, **d)
@@ -44,17 +84,42 @@ def _linear_graph() -> nx.DiGraph:
 def _cross_system_graph() -> nx.DiGraph:
     """Multi-system graph for cross-system propagation tests."""
     g = nx.DiGraph()
-    g.add_node("sql::source.raw", system="sql", node_type="SourceTable", label="source.raw")
-    g.add_node("spark::s3://processed/", system="spark", node_type="SparkDataset", label="s3://processed/")
-    g.add_node("dbt::orders_fact", system="dbt", node_type="DbtModel", label="orders_fact")
-    g.add_node("airflow::dag.task", system="airflow", node_type="AirflowTask", label="dag.task")
+    g.add_node(
+        "sql::source.raw", system="sql", node_type="SourceTable", label="source.raw"
+    )
+    g.add_node(
+        "spark::s3://processed/",
+        system="spark",
+        node_type="SparkDataset",
+        label="s3://processed/",
+    )
+    g.add_node(
+        "dbt::orders_fact", system="dbt", node_type="DbtModel", label="orders_fact"
+    )
+    g.add_node(
+        "airflow::dag.task", system="airflow", node_type="AirflowTask", label="dag.task"
+    )
 
-    g.add_edge("sql::source.raw", "spark::s3://processed/",
-               system="sql", column_mappings=[{"target_col": "amount", "source_expression": "amount"}])
-    g.add_edge("spark::s3://processed/", "dbt::orders_fact",
-               system="cross", column_mappings=[], transformation_type="spark_to_dbt")
-    g.add_edge("dbt::orders_fact", "airflow::dag.task",
-               system="cross", column_mappings=[], transformation_type="dbt_to_airflow")
+    g.add_edge(
+        "sql::source.raw",
+        "spark::s3://processed/",
+        system="sql",
+        column_mappings=[{"target_col": "amount", "source_expression": "amount"}],
+    )
+    g.add_edge(
+        "spark::s3://processed/",
+        "dbt::orders_fact",
+        system="cross",
+        column_mappings=[],
+        transformation_type="spark_to_dbt",
+    )
+    g.add_edge(
+        "dbt::orders_fact",
+        "airflow::dag.task",
+        system="cross",
+        column_mappings=[],
+        transformation_type="dbt_to_airflow",
+    )
     return g
 
 
@@ -63,15 +128,19 @@ def _wildcard_graph() -> nx.DiGraph:
     g = nx.DiGraph()
     g.add_node("source.a", system="sql", node_type="SourceTable", label="source.a")
     g.add_node("staging.b", system="sql", node_type="SinkTable", label="staging.b")
-    g.add_edge("source.a", "staging.b",
-               system="sql",
-               column_mappings=[{"target_col": "*", "source_expression": "*"}])
+    g.add_edge(
+        "source.a",
+        "staging.b",
+        system="sql",
+        column_mappings=[{"target_col": "*", "source_expression": "*"}],
+    )
     return g
 
 
 # ---------------------------------------------------------------------------
 # Basic simulation
 # ---------------------------------------------------------------------------
+
 
 class TestBasicSimulation:
     def test_returns_blast_radius_report(self):
@@ -111,6 +180,7 @@ class TestBasicSimulation:
 # Severity classification
 # ---------------------------------------------------------------------------
 
+
 class TestSeverityClassification:
     def test_direct_column_reference_is_breaking(self):
         sim = PropagationSimulator(_linear_graph())
@@ -142,26 +212,35 @@ class TestSeverityClassification:
 # Blast radius counts
 # ---------------------------------------------------------------------------
 
+
 class TestBlastRadiusCounts:
     def test_breaking_count_correct(self):
         sim = PropagationSimulator(_linear_graph())
         report = sim.simulate("source.orders", "amount", "rename")
-        assert report.breaking_count == sum(1 for n in report.impacted_nodes if n.severity == Severity.BREAKING)
+        assert report.breaking_count == sum(
+            1 for n in report.impacted_nodes if n.severity == Severity.BREAKING
+        )
 
     def test_warning_count_correct(self):
         sim = PropagationSimulator(_wildcard_graph())
         report = sim.simulate("source.a", "col", "rename")
-        assert report.warning_count == sum(1 for n in report.impacted_nodes if n.severity == Severity.WARNING)
+        assert report.warning_count == sum(
+            1 for n in report.impacted_nodes if n.severity == Severity.WARNING
+        )
 
     def test_total_impacted_equals_sum_of_severities(self):
         sim = PropagationSimulator(_linear_graph())
         report = sim.simulate("source.orders")
-        assert report.total_impacted == report.breaking_count + report.warning_count + report.ok_count
+        assert (
+            report.total_impacted
+            == report.breaking_count + report.warning_count + report.ok_count
+        )
 
 
 # ---------------------------------------------------------------------------
 # Fix time estimation
 # ---------------------------------------------------------------------------
+
 
 class TestFixTimeEstimation:
     def test_fix_hours_positive_for_breaking(self):
@@ -188,6 +267,7 @@ class TestFixTimeEstimation:
 # Path tracking
 # ---------------------------------------------------------------------------
 
+
 class TestPathTracking:
     def test_path_includes_source(self):
         sim = PropagationSimulator(_linear_graph())
@@ -205,6 +285,7 @@ class TestPathTracking:
 # ---------------------------------------------------------------------------
 # Cross-system propagation
 # ---------------------------------------------------------------------------
+
 
 class TestCrossSystemPropagation:
     def test_propagates_across_system_boundary(self):
@@ -227,6 +308,7 @@ class TestCrossSystemPropagation:
 # ---------------------------------------------------------------------------
 # Summary and serialization
 # ---------------------------------------------------------------------------
+
 
 class TestReportSerialization:
     def test_summary_contains_changed_node(self):
@@ -263,6 +345,7 @@ class TestReportSerialization:
 # ---------------------------------------------------------------------------
 # Top risk nodes
 # ---------------------------------------------------------------------------
+
 
 class TestTopRiskNodes:
     def test_top_risk_nodes_returns_list(self):

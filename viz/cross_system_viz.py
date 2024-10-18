@@ -20,6 +20,7 @@ import networkx as nx
 
 try:
     from pyvis.network import Network
+
     _PYVIS_AVAILABLE = True
 except ImportError:
     _PYVIS_AVAILABLE = False
@@ -30,36 +31,36 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 _SYSTEM_COLORS: Dict[str, str] = {
-    "sql":     "#4A90D9",   # blue
-    "spark":   "#F5A623",   # orange
-    "dbt":     "#7ED321",   # green
-    "airflow": "#9B59B6",   # purple
-    "cross":   "#E74C3C",   # red for cross-system edges
-    "unknown": "#BDC3C7",   # grey
+    "sql": "#4A90D9",  # blue
+    "spark": "#F5A623",  # orange
+    "dbt": "#7ED321",  # green
+    "airflow": "#9B59B6",  # purple
+    "cross": "#E74C3C",  # red for cross-system edges
+    "unknown": "#BDC3C7",  # grey
 }
 
 _SYSTEM_SHAPES: Dict[str, str] = {
-    "sql":     "database",
-    "spark":   "star",
-    "dbt":     "diamond",
+    "sql": "database",
+    "spark": "star",
+    "dbt": "diamond",
     "airflow": "triangle",
     "unknown": "dot",
 }
 
 _NODE_TYPE_BORDER: Dict[str, str] = {
-    "SourceTable":   "#2C3E50",
-    "SparkDataset":  "#E67E22",
-    "DbtModel":      "#27AE60",
-    "AirflowTask":   "#8E44AD",
-    "SinkTable":     "#C0392B",
+    "SourceTable": "#2C3E50",
+    "SparkDataset": "#E67E22",
+    "DbtModel": "#27AE60",
+    "AirflowTask": "#8E44AD",
+    "SinkTable": "#C0392B",
 }
 
 _EDGE_COLORS: Dict[str, str] = {
-    "sql":     "#85C1E9",
-    "spark":   "#FAD7A0",
-    "dbt":     "#A9DFBF",
+    "sql": "#85C1E9",
+    "spark": "#FAD7A0",
+    "dbt": "#A9DFBF",
     "airflow": "#D2B4DE",
-    "cross":   "#F1948A",
+    "cross": "#F1948A",
     "unknown": "#D5D8DC",
 }
 
@@ -207,6 +208,7 @@ window.addEventListener('message', function(event) {{
 # Visualization builder
 # ---------------------------------------------------------------------------
 
+
 class CrossSystemViz:
     """
     Build an interactive cross-system lineage visualization.
@@ -240,33 +242,37 @@ class CrossSystemViz:
             font_color="#e0e0e0",
             directed=True,
         )
-        net.set_options(json.dumps({
-            "nodes": {
-                "font": {"size": 12, "color": "#e0e0e0"},
-                "borderWidth": 2,
-                "shadow": True,
-            },
-            "edges": {
-                "arrows": {"to": {"enabled": True, "scaleFactor": 0.8}},
-                "smooth": {"type": "cubicBezier"},
-                "font": {"size": 10, "color": "#9e9e9e"},
-            },
-            "physics": {
-                "enabled": True,
-                "forceAtlas2Based": {
-                    "gravitationalConstant": -50,
-                    "centralGravity": 0.01,
-                    "springLength": 150,
-                },
-                "solver": "forceAtlas2Based",
-                "stabilization": {"iterations": 100},
-            },
-            "interaction": {
-                "hover": True,
-                "navigationButtons": True,
-                "tooltipDelay": 150,
-            },
-        }))
+        net.set_options(
+            json.dumps(
+                {
+                    "nodes": {
+                        "font": {"size": 12, "color": "#e0e0e0"},
+                        "borderWidth": 2,
+                        "shadow": True,
+                    },
+                    "edges": {
+                        "arrows": {"to": {"enabled": True, "scaleFactor": 0.8}},
+                        "smooth": {"type": "cubicBezier"},
+                        "font": {"size": 10, "color": "#9e9e9e"},
+                    },
+                    "physics": {
+                        "enabled": True,
+                        "forceAtlas2Based": {
+                            "gravitationalConstant": -50,
+                            "centralGravity": 0.01,
+                            "springLength": 150,
+                        },
+                        "solver": "forceAtlas2Based",
+                        "stabilization": {"iterations": 100},
+                    },
+                    "interaction": {
+                        "hover": True,
+                        "navigationButtons": True,
+                        "tooltipDelay": 150,
+                    },
+                }
+            )
+        )
 
         included_nodes: set = set()
 
@@ -302,7 +308,11 @@ class CrossSystemViz:
                 node_id,
                 label=display_label,
                 title="<br>".join(tooltip_lines),
-                color={"background": color, "border": border_color, "highlight": {"background": color, "border": "#FFFFFF"}},
+                color={
+                    "background": color,
+                    "border": border_color,
+                    "highlight": {"background": color, "border": "#FFFFFF"},
+                },
                 shape=shape,
                 size=20 if system in ("airflow", "spark") else 16,
             )
@@ -316,7 +326,8 @@ class CrossSystemViz:
             t_type = edge_data.get("transformation_type", "")
 
             net.add_edge(
-                src, tgt,
+                src,
+                tgt,
                 title=f"System: {system}<br>Transform: {t_type}",
                 color=color,
                 width=2 if system == "cross" else 1,
@@ -348,10 +359,13 @@ class CrossSystemViz:
         if not _PYVIS_AVAILABLE:
             return self._export_fallback_html(output_path)
 
-        net = self._build_pyvis(filter_systems=filter_systems, hide_intermediate=hide_intermediate)
+        net = self._build_pyvis(
+            filter_systems=filter_systems, hide_intermediate=hide_intermediate
+        )
 
         # Generate pyvis HTML into a temp file, then embed in our wrapper
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w") as tmp:
             tmp_path = tmp.name
 
@@ -372,7 +386,10 @@ class CrossSystemViz:
         # Embed pyvis content inside our wrapper as an inline div (strip outer html tags)
         # Extract body content from pyvis-generated HTML
         import re
-        body_match = re.search(r"<body[^>]*>(.*?)</body>", pyvis_content, re.DOTALL | re.IGNORECASE)
+
+        body_match = re.search(
+            r"<body[^>]*>(.*?)</body>", pyvis_content, re.DOTALL | re.IGNORECASE
+        )
         inner_body = body_match.group(1) if body_match else pyvis_content
 
         full_html = _HTML_TEMPLATE.format(
@@ -395,19 +412,13 @@ class CrossSystemViz:
         """Export a lightweight SVG-based fallback when pyvis is not available."""
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-        nodes_list = [
-            {"id": n, **dict(self._g.nodes[n])}
-            for n in self._g.nodes
-        ]
+        nodes_list = [{"id": n, **dict(self._g.nodes[n])} for n in self._g.nodes]
         edges_list = [
-            {"source": s, "target": t, **d}
-            for s, t, d in self._g.edges(data=True)
+            {"source": s, "target": t, **d} for s, t, d in self._g.edges(data=True)
         ]
 
         stats = self._build_stats_html()
-        node_data_map = {
-            n: dict(self._g.nodes[n]) for n in self._g.nodes
-        }
+        node_data_map = {n: dict(self._g.nodes[n]) for n in self._g.nodes}
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -455,16 +466,22 @@ th {{ color: #7986cb; font-weight: 600; }}
         """Build HTML for stats chips."""
         chips: List[str] = []
         for system in ("sql", "spark", "dbt", "airflow"):
-            count = sum(1 for n in self._g.nodes if self._g.nodes[n].get("system") == system)
+            count = sum(
+                1 for n in self._g.nodes if self._g.nodes[n].get("system") == system
+            )
             if count > 0:
                 color = _SYSTEM_COLORS[system]
                 chips.append(
                     f'<span class="stat-chip" style="border-left:3px solid {color}">'
-                    f'{system.upper()}: {count}</span>'
+                    f"{system.upper()}: {count}</span>"
                 )
-        cross = sum(1 for _, _, d in self._g.edges(data=True) if d.get("system") == "cross")
+        cross = sum(
+            1 for _, _, d in self._g.edges(data=True) if d.get("system") == "cross"
+        )
         if cross:
-            chips.append(f'<span class="stat-chip" style="border-left:3px solid {_SYSTEM_COLORS["cross"]}">Cross edges: {cross}</span>')
+            chips.append(
+                f'<span class="stat-chip" style="border-left:3px solid {_SYSTEM_COLORS["cross"]}">Cross edges: {cross}</span>'
+            )
         return "".join(chips)
 
     def get_system_subgraph(self, system: str) -> nx.DiGraph:

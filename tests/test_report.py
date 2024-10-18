@@ -9,24 +9,26 @@ from lineage.report import generate_mermaid, generate_html_report
 
 def _build_simple_graph() -> LineageGraph:
     g = LineageGraph()
-    g.ingest([
-        LineageNode(
-            target_table="staging.orders",
-            source_tables=["source.raw_orders"],
-            column_mappings=[ColumnMapping("order_id", "order_id")],
-            transformation_type="passthrough",
-            raw_sql="...",
-            pipeline_name="retail_etl",
-        ),
-        LineageNode(
-            target_table="mart.sales",
-            source_tables=["staging.orders"],
-            column_mappings=[ColumnMapping("revenue", "SUM(amount)")],
-            transformation_type="aggregate",
-            raw_sql="...",
-            pipeline_name="retail_etl",
-        ),
-    ])
+    g.ingest(
+        [
+            LineageNode(
+                target_table="staging.orders",
+                source_tables=["source.raw_orders"],
+                column_mappings=[ColumnMapping("order_id", "order_id")],
+                transformation_type="passthrough",
+                raw_sql="...",
+                pipeline_name="retail_etl",
+            ),
+            LineageNode(
+                target_table="mart.sales",
+                source_tables=["staging.orders"],
+                column_mappings=[ColumnMapping("revenue", "SUM(amount)")],
+                transformation_type="aggregate",
+                raw_sql="...",
+                pipeline_name="retail_etl",
+            ),
+        ]
+    )
     return g
 
 

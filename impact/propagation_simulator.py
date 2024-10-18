@@ -30,6 +30,7 @@ import networkx as nx
 # Enums and models
 # ---------------------------------------------------------------------------
 
+
 class Severity(str, Enum):
     BREAKING = "BREAKING"
     WARNING = "WARNING"
@@ -39,6 +40,7 @@ class Severity(str, Enum):
 @dataclass
 class ImpactedNode:
     """A single downstream node affected by a change."""
+
     node_id: str
     label: str
     system: str
@@ -67,6 +69,7 @@ class ImpactedNode:
 @dataclass
 class BlastRadiusReport:
     """Complete impact analysis report for a single schema change."""
+
     changed_node: str
     changed_column: Optional[str]
     change_type: str  # rename | drop | type_change | add
@@ -149,6 +152,7 @@ def _estimate_fix_hours(system: str, severity: Severity, hop_distance: int) -> f
 # Propagation simulator
 # ---------------------------------------------------------------------------
 
+
 class PropagationSimulator:
     """
     Simulate change impact propagation through a cross-system lineage graph.
@@ -219,17 +223,19 @@ class PropagationSimulator:
                 system = node_data.get("system", "unknown")
                 fix_hours = _estimate_fix_hours(system, severity, hop + 1)
 
-                impacted.append(ImpactedNode(
-                    node_id=successor,
-                    label=node_data.get("label", successor),
-                    system=system,
-                    node_type=node_data.get("node_type", "Unknown"),
-                    severity=severity,
-                    hop_distance=hop + 1,
-                    path_from_source=new_path,
-                    reason=reason,
-                    fix_hours=fix_hours,
-                ))
+                impacted.append(
+                    ImpactedNode(
+                        node_id=successor,
+                        label=node_data.get("label", successor),
+                        system=system,
+                        node_type=node_data.get("node_type", "Unknown"),
+                        severity=severity,
+                        hop_distance=hop + 1,
+                        path_from_source=new_path,
+                        reason=reason,
+                        fix_hours=fix_hours,
+                    )
+                )
 
                 # Continue propagation for BREAKING and WARNING
                 if severity in (Severity.BREAKING, Severity.WARNING):
@@ -283,7 +289,10 @@ class PropagationSimulator:
         - Otherwise → OK.
         """
         if column_name is None:
-            return Severity.BREAKING, f"Whole-table change ({change_type}) propagates downstream"
+            return (
+                Severity.BREAKING,
+                f"Whole-table change ({change_type}) propagates downstream",
+            )
 
         column_mappings = edge_data.get("column_mappings", [])
 
@@ -293,26 +302,50 @@ class PropagationSimulator:
             tgt_col = str(mapping.get("target_col", ""))
             if column_name.lower() in src_expr.lower():
                 if change_type == "drop":
-                    return Severity.BREAKING, f"Column '{column_name}' is dropped; consumed in '{tgt_col}'"
+                    return (
+                        Severity.BREAKING,
+                        f"Column '{column_name}' is dropped; consumed in '{tgt_col}'",
+                    )
                 elif change_type == "rename":
-                    return Severity.BREAKING, f"Column '{column_name}' renamed; mapping '{src_expr}' → '{tgt_col}' will break"
+                    return (
+                        Severity.BREAKING,
+                        f"Column '{column_name}' renamed; mapping '{src_expr}' → '{tgt_col}' will break",
+                    )
                 elif change_type == "type_change":
-                    return Severity.WARNING, f"Column '{column_name}' type changed; expression '{src_expr}' may be incompatible"
+                    return (
+                        Severity.WARNING,
+                        f"Column '{column_name}' type changed; expression '{src_expr}' may be incompatible",
+                    )
                 else:
-                    return Severity.WARNING, f"Column '{column_name}' modified; review mapping '{src_expr}'"
+                    return (
+                        Severity.WARNING,
+                        f"Column '{column_name}' modified; review mapping '{src_expr}'",
+                    )
 
         # Check for wildcard (* or SELECT *)
         for mapping in column_mappings:
             if str(mapping.get("source_expression", "")).strip() == "*":
-                return Severity.WARNING, f"Wildcard SELECT * — may implicitly include '{column_name}'"
+                return (
+                    Severity.WARNING,
+                    f"Wildcard SELECT * — may implicitly include '{column_name}'",
+                )
             if str(mapping.get("target_col", "")).strip() == "*":
-                return Severity.WARNING, f"Wildcard SELECT * — column '{column_name}' may be consumed"
+                return (
+                    Severity.WARNING,
+                    f"Wildcard SELECT * — column '{column_name}' may be consumed",
+                )
 
         # No direct column reference, but in propagation path
         if hop <= 2:
-            return Severity.WARNING, f"Indirect consumer at hop {hop}; review for implicit dependency on '{column_name}'"
+            return (
+                Severity.WARNING,
+                f"Indirect consumer at hop {hop}; review for implicit dependency on '{column_name}'",
+            )
 
-        return Severity.OK, f"No direct dependency on '{column_name}' detected at hop {hop}"
+        return (
+            Severity.OK,
+            f"No direct dependency on '{column_name}' detected at hop {hop}",
+        )
 
     def multi_column_simulate(
         self,
@@ -357,11 +390,13 @@ class PropagationSimulator:
         result = []
         for nid, score in ranked:
             node_data = dict(self._g.nodes[nid])
-            result.append({
-                "node_id": nid,
-                "label": node_data.get("label", nid),
-                "system": node_data.get("system", "unknown"),
-                "centrality_score": round(score, 4),
-                "out_degree": self._g.out_degree(nid),
-            })
+            result.append(
+                {
+                    "node_id": nid,
+                    "label": node_data.get("label", nid),
+                    "system": node_data.get("system", "unknown"),
+                    "centrality_score": round(score, 4),
+                    "out_degree": self._g.out_degree(nid),
+                }
+            )
         return result

@@ -59,9 +59,8 @@ def _extract_cte_names(statement) -> List[str]:
         # sqlparse uses Token.Keyword.CTE for WITH when it follows INSERT INTO,
         # and Token.Keyword for WITH at statement start.
         is_with = (
-            (tok.ttype is CTE or tok.ttype is Keyword)
-            and tok.normalized.upper() == "WITH"
-        )
+            tok.ttype is CTE or tok.ttype is Keyword
+        ) and tok.normalized.upper() == "WITH"
         if is_with:
             i += 1
             while i < len(tokens):
@@ -113,17 +112,25 @@ def _extract_from_tables(tokens, alias_map: Dict[str, str]) -> List[str]:
             i += 1
             continue
 
-        is_from_or_join = (
-            tok.ttype is Keyword
-            and tok.normalized.upper() in ("FROM", "JOIN", "INNER JOIN", "LEFT JOIN",
-                                            "RIGHT JOIN", "FULL JOIN", "CROSS JOIN",
-                                            "LEFT OUTER JOIN", "RIGHT OUTER JOIN")
+        is_from_or_join = tok.ttype is Keyword and tok.normalized.upper() in (
+            "FROM",
+            "JOIN",
+            "INNER JOIN",
+            "LEFT JOIN",
+            "RIGHT JOIN",
+            "FULL JOIN",
+            "CROSS JOIN",
+            "LEFT OUTER JOIN",
+            "RIGHT OUTER JOIN",
         )
 
         if is_from_or_join:
             i += 1
             # Skip whitespace
-            while i < len(token_list) and token_list[i].ttype in (sqlparse.tokens.Whitespace, sqlparse.tokens.Newline):
+            while i < len(token_list) and token_list[i].ttype in (
+                sqlparse.tokens.Whitespace,
+                sqlparse.tokens.Newline,
+            ):
                 i += 1
 
             if i < len(token_list):
@@ -144,7 +151,13 @@ def _extract_from_tables(tokens, alias_map: Dict[str, str]) -> List[str]:
                                     alias_map[alias] = real
                 elif next_tok.ttype not in (None,) and next_tok.value:
                     name = _clean_identifier(next_tok.value)
-                    if name and not name.upper() in ("SELECT", "WHERE", "GROUP", "ORDER", "HAVING"):
+                    if name and not name.upper() in (
+                        "SELECT",
+                        "WHERE",
+                        "GROUP",
+                        "ORDER",
+                        "HAVING",
+                    ):
                         tables.append(name)
             continue
         i += 1
@@ -163,14 +176,19 @@ def _extract_target_table(statement) -> Optional[str]:
         if tok.ttype is DML and val == "INSERT":
             i += 1
             while i < len(tokens) and tokens[i].ttype in (
-                sqlparse.tokens.Whitespace, sqlparse.tokens.Newline, sqlparse.tokens.Keyword
+                sqlparse.tokens.Whitespace,
+                sqlparse.tokens.Newline,
+                sqlparse.tokens.Keyword,
             ):
                 into_tok = tokens[i]
                 if into_tok.ttype is Keyword and into_tok.normalized.upper() == "INTO":
                     i += 1
                     break
                 i += 1
-            while i < len(tokens) and tokens[i].ttype in (sqlparse.tokens.Whitespace, sqlparse.tokens.Newline):
+            while i < len(tokens) and tokens[i].ttype in (
+                sqlparse.tokens.Whitespace,
+                sqlparse.tokens.Newline,
+            ):
                 i += 1
             if i < len(tokens):
                 target_tok = tokens[i]
@@ -189,11 +207,19 @@ def _extract_target_table(statement) -> Optional[str]:
                 if t.ttype is Keyword and t.normalized.upper() == "TABLE":
                     i += 1
                     while i < len(tokens) and tokens[i].ttype in (
-                        sqlparse.tokens.Whitespace, sqlparse.tokens.Newline, sqlparse.tokens.Keyword
+                        sqlparse.tokens.Whitespace,
+                        sqlparse.tokens.Newline,
+                        sqlparse.tokens.Keyword,
                     ):
                         extra = tokens[i]
                         # skip OR REPLACE, IF NOT EXISTS modifiers
-                        if extra.ttype is Keyword and extra.normalized.upper() in ("OR", "REPLACE", "IF", "NOT", "EXISTS"):
+                        if extra.ttype is Keyword and extra.normalized.upper() in (
+                            "OR",
+                            "REPLACE",
+                            "IF",
+                            "NOT",
+                            "EXISTS",
+                        ):
                             pass
                         i += 1
                     if i < len(tokens):
@@ -273,8 +299,12 @@ def _extract_select_columns(tokens) -> List[Tuple[str, str]]:
 def _detect_transformation_type(statement, source_tables: List[str]) -> str:
     """Classify transformation as aggregate | join | filter | passthrough."""
     sql_upper = statement.value.upper()
-    has_aggregate = any(kw in sql_upper for kw in ("GROUP BY", "SUM(", "COUNT(", "AVG(", "MAX(", "MIN("))
-    has_join = len(source_tables) > 1 or any(kw in sql_upper for kw in (" JOIN ", "INNER JOIN", "LEFT JOIN"))
+    has_aggregate = any(
+        kw in sql_upper for kw in ("GROUP BY", "SUM(", "COUNT(", "AVG(", "MAX(", "MIN(")
+    )
+    has_join = len(source_tables) > 1 or any(
+        kw in sql_upper for kw in (" JOIN ", "INNER JOIN", "LEFT JOIN")
+    )
     has_filter = "WHERE" in sql_upper
 
     if has_aggregate:
@@ -308,23 +338,30 @@ def parse_sql(sql: str, pipeline_name: Optional[str] = None) -> List[LineageNode
         # by flattening and checking if all leaf tokens are comments/whitespace.
         def _is_comment_or_ws(tok) -> bool:
             if tok.ttype in (
-                sqlparse.tokens.Whitespace, sqlparse.tokens.Newline,
-                sqlparse.tokens.Comment.Single, sqlparse.tokens.Comment.Multiline,
+                sqlparse.tokens.Whitespace,
+                sqlparse.tokens.Newline,
+                sqlparse.tokens.Comment.Single,
+                sqlparse.tokens.Comment.Multiline,
             ):
                 return True
             if tok.ttype is None:
                 # compound token — check leaves
                 leaves = list(tok.flatten())
                 return all(
-                    t.ttype in (
-                        sqlparse.tokens.Whitespace, sqlparse.tokens.Newline,
-                        sqlparse.tokens.Comment.Single, sqlparse.tokens.Comment.Multiline,
+                    t.ttype
+                    in (
+                        sqlparse.tokens.Whitespace,
+                        sqlparse.tokens.Newline,
+                        sqlparse.tokens.Comment.Single,
+                        sqlparse.tokens.Comment.Multiline,
                     )
                     for t in leaves
                 )
             return False
 
-        non_ws = [t for t in stmt.tokens if not _is_comment_or_ws(t) and t.value.strip()]
+        non_ws = [
+            t for t in stmt.tokens if not _is_comment_or_ws(t) and t.value.strip()
+        ]
         if not non_ws:
             continue
 
@@ -352,8 +389,7 @@ def parse_sql(sql: str, pipeline_name: Optional[str] = None) -> List[LineageNode
 
         # Remove CTEs (they are virtual, not real sources) and self-references
         source_tables = [
-            t for t in all_from_tables
-            if t not in cte_names and t != target_table
+            t for t in all_from_tables if t not in cte_names and t != target_table
         ]
         # Deduplicate preserving order
         seen: set = set()
@@ -367,8 +403,7 @@ def parse_sql(sql: str, pipeline_name: Optional[str] = None) -> List[LineageNode
 
         col_pairs = _extract_select_columns(stmt.tokens)
         column_mappings = [
-            ColumnMapping(target_col=tc, source_expression=src)
-            for tc, src in col_pairs
+            ColumnMapping(target_col=tc, source_expression=src) for tc, src in col_pairs
         ]
 
         transformation_type = _detect_transformation_type(stmt, source_tables)

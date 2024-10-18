@@ -20,9 +20,11 @@ from typing import Dict, List, Optional, Set, Tuple
 # Data models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SparkDataset:
     """A single Spark dataset node (source or sink)."""
+
     path: str
     format: str  # parquet | csv | json | table | unknown
     dataset_type: str  # source | sink | intermediate
@@ -31,6 +33,7 @@ class SparkDataset:
 @dataclass
 class SparkTransformation:
     """A transformation step applied to a DataFrame variable."""
+
     operation: str  # join | select | groupBy | filter | union | withColumn
     input_vars: List[str] = field(default_factory=list)
     output_var: str = ""
@@ -40,6 +43,7 @@ class SparkTransformation:
 @dataclass
 class SparkLineageNode:
     """Complete lineage for a single PySpark pipeline / script."""
+
     pipeline_name: str
     sources: List[SparkDataset]
     sinks: List[SparkDataset]
@@ -63,9 +67,24 @@ class SparkLineageNode:
 
 _READ_FORMATS = {"parquet", "csv", "json", "orc", "avro", "text"}
 _WRITE_FORMATS = {"parquet", "csv", "json", "orc", "avro", "text", "saveastable"}
-_TRANSFORM_OPS = {"join", "select", "groupby", "filter", "where", "union",
-                  "unionall", "unionbyname", "withcolumn", "drop", "distinct",
-                  "limit", "orderby", "sortby", "agg", "aggregate"}
+_TRANSFORM_OPS = {
+    "join",
+    "select",
+    "groupby",
+    "filter",
+    "where",
+    "union",
+    "unionall",
+    "unionbyname",
+    "withcolumn",
+    "drop",
+    "distinct",
+    "limit",
+    "orderby",
+    "sortby",
+    "agg",
+    "aggregate",
+}
 
 
 class _SparkVisitor(ast.NodeVisitor):
@@ -163,7 +182,11 @@ class _SparkVisitor(ast.NodeVisitor):
             return True, path, fmt
 
         # spark.table("table_name") or spark.sql(...)
-        if method == "table" and isinstance(parent, ast.Name) and parent.id in ("spark", "sqlContext", "sc"):
+        if (
+            method == "table"
+            and isinstance(parent, ast.Name)
+            and parent.id in ("spark", "sqlContext", "sc")
+        ):
             path = self._extract_string_arg(node) or "<unknown_table>"
             return True, path, "table"
 
@@ -218,7 +241,9 @@ class _SparkVisitor(ast.NodeVisitor):
     # Transformation detection
     # ------------------------------------------------------------------
 
-    def _detect_transformation(self, call_node: ast.Call) -> Optional[SparkTransformation]:
+    def _detect_transformation(
+        self, call_node: ast.Call
+    ) -> Optional[SparkTransformation]:
         func = call_node.func
         if not isinstance(func, ast.Attribute):
             return None
@@ -232,19 +257,27 @@ class _SparkVisitor(ast.NodeVisitor):
 
         if op == "join":
             # df1.join(df2, on=..., how=...) → inputs = [df1, df2]
-            right_var = self._extract_var_name(call_node.args[0]) if call_node.args else None
+            right_var = (
+                self._extract_var_name(call_node.args[0]) if call_node.args else None
+            )
             left_var = root_var
             inputs = [v for v in [left_var, right_var] if v]
             for kw in call_node.keywords:
                 if kw.arg == "how" and isinstance(kw.value, ast.Constant):
                     details["how"] = kw.value.value
-            return SparkTransformation(operation="join", input_vars=inputs, details=details)
+            return SparkTransformation(
+                operation="join", input_vars=inputs, details=details
+            )
 
         if op in ("union", "unionall", "unionbyname"):
-            right_var = self._extract_var_name(call_node.args[0]) if call_node.args else None
+            right_var = (
+                self._extract_var_name(call_node.args[0]) if call_node.args else None
+            )
             left_var = root_var
             inputs = [v for v in [left_var, right_var] if v]
-            return SparkTransformation(operation="union", input_vars=inputs, details=details)
+            return SparkTransformation(
+                operation="union", input_vars=inputs, details=details
+            )
 
         if op == "select":
             cols = []
@@ -252,7 +285,11 @@ class _SparkVisitor(ast.NodeVisitor):
                 if isinstance(arg, ast.Constant):
                     cols.append(arg.value)
             details["columns"] = cols
-            return SparkTransformation(operation="select", input_vars=[root_var] if root_var else [], details=details)
+            return SparkTransformation(
+                operation="select",
+                input_vars=[root_var] if root_var else [],
+                details=details,
+            )
 
         if op == "groupby":
             cols = []
@@ -260,17 +297,31 @@ class _SparkVisitor(ast.NodeVisitor):
                 if isinstance(arg, ast.Constant):
                     cols.append(arg.value)
             details["group_by"] = cols
-            return SparkTransformation(operation="groupBy", input_vars=[root_var] if root_var else [], details=details)
+            return SparkTransformation(
+                operation="groupBy",
+                input_vars=[root_var] if root_var else [],
+                details=details,
+            )
 
         if op in ("filter", "where"):
-            return SparkTransformation(operation="filter", input_vars=[root_var] if root_var else [], details=details)
+            return SparkTransformation(
+                operation="filter",
+                input_vars=[root_var] if root_var else [],
+                details=details,
+            )
 
         if op == "withcolumn":
             col_name = self._extract_string_arg(call_node) or "<col>"
             details["column"] = col_name
-            return SparkTransformation(operation="withColumn", input_vars=[root_var] if root_var else [], details=details)
+            return SparkTransformation(
+                operation="withColumn",
+                input_vars=[root_var] if root_var else [],
+                details=details,
+            )
 
-        return SparkTransformation(operation=op, input_vars=[root_var] if root_var else [], details=details)
+        return SparkTransformation(
+            operation=op, input_vars=[root_var] if root_var else [], details=details
+        )
 
     # ------------------------------------------------------------------
     # AST visitor methods
@@ -304,7 +355,12 @@ class _SparkVisitor(ast.NodeVisitor):
 
             # Case 2: Transform chain — df2 = df1.filter(...).select(...)
             root_var = self._chain_root_var(value)
-            if root_var and root_var in self._var_datasets or root_var in self._intermediate_vars or root_var in self._source_vars:
+            if (
+                root_var
+                and root_var in self._var_datasets
+                or root_var in self._intermediate_vars
+                or root_var in self._source_vars
+            ):
                 self._intermediate_vars.add(var_name)
                 # Track chain origins
                 origins = self._var_origins.get(root_var, [root_var])
@@ -329,7 +385,9 @@ class _SparkVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
-    def _extract_transforms_from_chain(self, node: ast.Call, output_var: str = "") -> None:
+    def _extract_transforms_from_chain(
+        self, node: ast.Call, output_var: str = ""
+    ) -> None:
         """Recursively walk a call chain and emit SparkTransformation objects."""
         t = self._detect_transformation(node)
         if t:
@@ -337,7 +395,9 @@ class _SparkVisitor(ast.NodeVisitor):
             self.transformations.append(t)
 
         # Recurse into the chained receiver
-        if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Call):
+        if isinstance(node.func, ast.Attribute) and isinstance(
+            node.func.value, ast.Call
+        ):
             self._extract_transforms_from_chain(node.func.value, output_var="")
 
     def visit_Expr(self, node: ast.Expr) -> None:
@@ -355,7 +415,9 @@ class _SparkVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def build(self) -> SparkLineageNode:
-        intermediate = list(self._intermediate_vars - self._source_vars - self._sink_vars)
+        intermediate = list(
+            self._intermediate_vars - self._source_vars - self._sink_vars
+        )
         return SparkLineageNode(
             pipeline_name=self.pipeline_name,
             sources=self.sources,
@@ -370,7 +432,10 @@ class _SparkVisitor(ast.NodeVisitor):
 # Public API
 # ---------------------------------------------------------------------------
 
-def parse_spark_code(code: str, pipeline_name: str = "spark_pipeline") -> SparkLineageNode:
+
+def parse_spark_code(
+    code: str, pipeline_name: str = "spark_pipeline"
+) -> SparkLineageNode:
     """
     Parse PySpark source code and return a SparkLineageNode.
 
@@ -391,7 +456,9 @@ def parse_spark_code(code: str, pipeline_name: str = "spark_pipeline") -> SparkL
     return visitor.build()
 
 
-def parse_spark_file(filepath: str, pipeline_name: Optional[str] = None) -> SparkLineageNode:
+def parse_spark_file(
+    filepath: str, pipeline_name: Optional[str] = None
+) -> SparkLineageNode:
     """
     Parse a .py PySpark file and return its lineage.
 
@@ -403,6 +470,7 @@ def parse_spark_file(filepath: str, pipeline_name: Optional[str] = None) -> Spar
         SparkLineageNode.
     """
     import pathlib
+
     p = pathlib.Path(filepath)
     if pipeline_name is None:
         pipeline_name = p.stem

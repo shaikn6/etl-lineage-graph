@@ -9,6 +9,7 @@ from lineage.parser import parse_sql, LineageNode, ColumnMapping
 # INSERT INTO
 # ---------------------------------------------------------------------------
 
+
 class TestInsertIntoBasic:
     def test_simple_insert_select(self):
         sql = """
@@ -65,6 +66,7 @@ class TestInsertIntoBasic:
 # CREATE TABLE AS
 # ---------------------------------------------------------------------------
 
+
 class TestCreateTableAs:
     def test_create_table_as_select(self):
         sql = """
@@ -91,6 +93,7 @@ class TestCreateTableAs:
 # ---------------------------------------------------------------------------
 # Column mappings
 # ---------------------------------------------------------------------------
+
 
 class TestColumnMappings:
     def test_alias_is_target_col(self):
@@ -119,6 +122,7 @@ class TestColumnMappings:
 # ---------------------------------------------------------------------------
 # CTEs
 # ---------------------------------------------------------------------------
+
 
 class TestCTEs:
     def test_cte_not_in_source_tables(self):
@@ -156,6 +160,7 @@ class TestCTEs:
 # Multi-statement
 # ---------------------------------------------------------------------------
 
+
 class TestMultiStatement:
     def test_two_inserts_parsed(self):
         sql = """
@@ -180,6 +185,7 @@ class TestMultiStatement:
 # ---------------------------------------------------------------------------
 # Transformation types
 # ---------------------------------------------------------------------------
+
 
 class TestTransformationTypes:
     def test_passthrough_detected(self):
@@ -212,6 +218,7 @@ class TestTransformationTypes:
 # ---------------------------------------------------------------------------
 # Pipeline name propagation
 # ---------------------------------------------------------------------------
+
 
 class TestPipelineName:
     def test_pipeline_name_set(self):

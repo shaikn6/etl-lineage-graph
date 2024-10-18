@@ -101,7 +101,9 @@ def get_lineage(table: str) -> Dict[str, Any]:
     """Return upstream and downstream tables for a given table."""
     g = get_graph()
     if table not in g.all_tables():
-        raise HTTPException(status_code=404, detail=f"Table '{table}' not found in graph.")
+        raise HTTPException(
+            status_code=404, detail=f"Table '{table}' not found in graph."
+        )
     return {
         "table": table,
         **g.get_upstream(table),
