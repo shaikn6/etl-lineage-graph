@@ -26,13 +26,12 @@ except ImportError:
 
 import networkx as nx
 
+from graph.cross_system_merger import AirflowTaskNode, CrossSystemMerger, NodeType
+from impact.propagation_simulator import PropagationSimulator, Severity
 from lineage.graph import LineageGraph
 from lineage.parser import parse_sql
-
-from parsers.spark_lineage_parser import parse_spark_code, SparkLineageNode
-from parsers.dbt_lineage_parser import parse_dbt_model, DbtModelNode
-from graph.cross_system_merger import CrossSystemMerger, AirflowTaskNode, NodeType
-from impact.propagation_simulator import PropagationSimulator, Severity
+from parsers.dbt_lineage_parser import DbtModelNode, parse_dbt_model
+from parsers.spark_lineage_parser import SparkLineageNode, parse_spark_code
 
 # ---------------------------------------------------------------------------
 # Page config

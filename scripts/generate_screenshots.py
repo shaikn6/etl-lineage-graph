@@ -7,8 +7,8 @@ import os
 import sys
 
 import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
+import matplotlib.pyplot as plt
 import networkx as nx
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "docs", "screenshots")

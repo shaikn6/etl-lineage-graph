@@ -13,11 +13,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-
 
 SCREENSHOTS_DIR = Path(__file__).parent.parent / "docs" / "screenshots"
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)

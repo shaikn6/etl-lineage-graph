@@ -4,7 +4,7 @@ import pytest
 
 from lineage.graph import LineageGraph
 from lineage.parser import ColumnMapping, LineageNode
-from lineage.report import generate_mermaid, generate_html_report
+from lineage.report import generate_html_report, generate_mermaid
 
 
 def _build_simple_graph() -> LineageGraph:

@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import pytest
 
+from graph.cross_system_merger import AirflowTaskNode, CrossSystemMerger, NodeType
 from lineage.graph import LineageGraph
 from lineage.parser import ColumnMapping, LineageNode
-
-from graph.cross_system_merger import AirflowTaskNode, CrossSystemMerger, NodeType
 from parsers.dbt_lineage_parser import parse_dbt_model
 from parsers.spark_lineage_parser import parse_spark_code
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -53,7 +51,7 @@ spark = types.SimpleNamespace()
 spark.read = types.SimpleNamespace()
 """
     # Use direct SparkLineageNode construction for deterministic test data
-    from parsers.spark_lineage_parser import SparkLineageNode, SparkDataset
+    from parsers.spark_lineage_parser import SparkDataset, SparkLineageNode
 
     return SparkLineageNode(
         pipeline_name="spark_etl",

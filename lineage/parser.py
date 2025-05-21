@@ -15,7 +15,7 @@ from sqlparse.sql import (
     Parenthesis,
     Where,
 )
-from sqlparse.tokens import Keyword, DML, CTE
+from sqlparse.tokens import CTE, DML, Keyword
 
 
 @dataclass

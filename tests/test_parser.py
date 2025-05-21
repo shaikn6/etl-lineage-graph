@@ -2,8 +2,7 @@
 
 import pytest
 
-from lineage.parser import parse_sql, LineageNode, ColumnMapping
-
+from lineage.parser import ColumnMapping, LineageNode, parse_sql
 
 # ---------------------------------------------------------------------------
 # INSERT INTO

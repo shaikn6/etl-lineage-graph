@@ -28,7 +28,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import networkx as nx
 
-
 # ---------------------------------------------------------------------------
 # Unified node descriptor
 # ---------------------------------------------------------------------------
