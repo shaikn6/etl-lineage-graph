@@ -1,7 +1,5 @@
 """Tests for lineage/report.py — Mermaid and HTML generation."""
 
-import pytest
-
 from lineage.graph import LineageGraph
 from lineage.parser import ColumnMapping, LineageNode
 from lineage.report import generate_html_report, generate_mermaid

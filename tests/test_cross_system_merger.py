@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import pytest
-
-from graph.cross_system_merger import AirflowTaskNode, CrossSystemMerger, NodeType
+from graph.cross_system_merger import AirflowTaskNode, CrossSystemMerger
 from lineage.graph import LineageGraph
 from lineage.parser import ColumnMapping, LineageNode
 from parsers.dbt_lineage_parser import parse_dbt_model
-from parsers.spark_lineage_parser import parse_spark_code
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -27,7 +24,10 @@ def _sql_graph() -> LineageGraph:
                     ColumnMapping("amount", "price*qty"),
                 ],
                 transformation_type="filter",
-                raw_sql="INSERT INTO staging.orders SELECT order_id, price*qty AS amount FROM source.raw_orders",
+                raw_sql=(
+                    "INSERT INTO staging.orders "
+                    "SELECT order_id, price*qty AS amount FROM source.raw_orders"
+                ),
                 pipeline_name="etl",
             ),
             LineageNode(
@@ -35,7 +35,10 @@ def _sql_graph() -> LineageGraph:
                 source_tables=["staging.orders"],
                 column_mappings=[ColumnMapping("total", "SUM(amount)")],
                 transformation_type="aggregate",
-                raw_sql="INSERT INTO mart.revenue SELECT SUM(amount) AS total FROM staging.orders GROUP BY 1",
+                raw_sql=(
+                    "INSERT INTO mart.revenue "
+                    "SELECT SUM(amount) AS total FROM staging.orders GROUP BY 1"
+                ),
                 pipeline_name="etl",
             ),
         ]
@@ -44,12 +47,6 @@ def _sql_graph() -> LineageGraph:
 
 
 def _spark_node():
-    code = """
-spark = None
-import types
-spark = types.SimpleNamespace()
-spark.read = types.SimpleNamespace()
-"""
     # Use direct SparkLineageNode construction for deterministic test data
     from parsers.spark_lineage_parser import SparkDataset, SparkLineageNode
 

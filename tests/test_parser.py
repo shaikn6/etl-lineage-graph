@@ -1,8 +1,6 @@
 """Tests for lineage/parser.py — SQL parsing and LineageNode extraction."""
 
-import pytest
-
-from lineage.parser import ColumnMapping, LineageNode, parse_sql
+from lineage.parser import parse_sql
 
 # ---------------------------------------------------------------------------
 # INSERT INTO

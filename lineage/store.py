@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine, text
+from sqlalchemy import Column, DateTime, Integer, String, create_engine, text
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 

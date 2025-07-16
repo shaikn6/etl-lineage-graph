@@ -4,11 +4,7 @@ from __future__ import annotations
 
 import textwrap
 
-import pytest
-
 from parsers.dbt_lineage_parser import (
-    DbtColumn,
-    DbtModelNode,
     build_dbt_dependency_graph,
     parse_dbt_model,
 )

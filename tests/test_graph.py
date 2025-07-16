@@ -1,7 +1,5 @@
 """Tests for lineage/graph.py — LineageGraph construction and queries."""
 
-import pytest
-
 from lineage.graph import LineageGraph
 from lineage.parser import ColumnMapping, LineageNode
 

@@ -4,12 +4,8 @@ from __future__ import annotations
 
 import textwrap
 
-import pytest
-
 from parsers.spark_lineage_parser import (
-    SparkDataset,
     SparkLineageNode,
-    SparkTransformation,
     parse_spark_code,
 )
 

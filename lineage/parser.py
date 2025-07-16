@@ -8,12 +8,9 @@ from typing import Dict, List, Optional, Tuple
 
 import sqlparse
 from sqlparse.sql import (
-    Comparison,
-    Function,
     Identifier,
     IdentifierList,
     Parenthesis,
-    Where,
 )
 from sqlparse.tokens import CTE, DML, Keyword
 
