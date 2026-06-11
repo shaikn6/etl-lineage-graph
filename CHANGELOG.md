@@ -1,16 +1,12 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
 
-### Added
-- Initial project setup
-
 ## [1.0.0] - 2026-06-17
-
 ### Added
-- Initial release
+- ETL pipeline lineage tracking system building column-level data provenance graphs
+- Automated lineage extraction from SQL transformation scripts and dbt models
+- Interactive lineage graph visualization with upstream and downstream impact analysis
+- Change impact assessment tool identifying downstream tables affected by schema changes
+- OpenLineage standard integration for interoperability with external data catalogs
+- Lineage-aware documentation generation for data governance compliance
