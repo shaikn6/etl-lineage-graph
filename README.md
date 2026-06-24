@@ -9,7 +9,7 @@
 
 
 [![CI](https://github.com/shaikn6/etl-lineage-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/shaikn6/etl-lineage-graph/actions/workflows/ci.yml)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Auto-discovers **column-level data lineage** from SQL/ETL pipelines using directed graph analysis — no manual annotation required.
@@ -270,7 +270,7 @@ etl-lineage-graph/
 | HTML templates | Jinja2 | 3.0 |
 | Persistence | SQLAlchemy + PostgreSQL | 1.4 / 13 |
 | Testing | pytest | 7.x |
-| Runtime | Python | 3.9 |
+| Runtime | Python | 3.10 |
 
 ---
 
