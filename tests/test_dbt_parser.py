@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import textwrap
 
-from parsers.dbt_lineage_parser import (
-    build_dbt_dependency_graph,
-    parse_dbt_model,
-)
+from parsers.dbt_lineage_parser import build_dbt_dependency_graph, parse_dbt_model
 
 # ---------------------------------------------------------------------------
 # ref() and source() extraction
@@ -21,13 +18,11 @@ class TestDbtRefExtraction:
         assert "stg_orders" in node.ref_deps
 
     def test_multiple_refs(self):
-        sql = textwrap.dedent(
-            """\
+        sql = textwrap.dedent("""\
             SELECT o.order_id, c.name
             FROM {{ ref('stg_orders') }} o
             JOIN {{ ref('stg_customers') }} c ON o.customer_id = c.id
-        """
-        )
+        """)
         node = parse_dbt_model(sql, "orders_enriched")
         assert "stg_orders" in node.ref_deps
         assert "stg_customers" in node.ref_deps
@@ -43,13 +38,11 @@ class TestDbtRefExtraction:
         assert ("raw", "orders") in node.source_deps
 
     def test_multiple_sources(self):
-        sql = textwrap.dedent(
-            """\
+        sql = textwrap.dedent("""\
             SELECT o.order_id, c.name
             FROM {{ source('raw', 'orders') }} o
             JOIN {{ source('raw', 'customers') }} c ON o.customer_id = c.id
-        """
-        )
+        """)
         node = parse_dbt_model(sql, "enriched")
         assert ("raw", "orders") in node.source_deps
         assert ("raw", "customers") in node.source_deps
@@ -119,16 +112,14 @@ class TestMaterialization:
 
 class TestColumnLineage:
     def test_alias_extracted(self):
-        sql = textwrap.dedent(
-            """\
+        sql = textwrap.dedent("""\
             {{ config(materialized='table') }}
             SELECT
                 customer_id,
                 price * qty AS amount,
                 region AS customer_region
             FROM {{ ref('stg_orders') }}
-        """
-        )
+        """)
         node = parse_dbt_model(sql, "orders_fact")
         target_cols = [c.target_col for c in node.column_lineage]
         assert "amount" in target_cols
@@ -159,13 +150,11 @@ class TestColumnLineage:
 
 class TestAllUpstream:
     def test_all_upstream_combines_refs_and_sources(self):
-        sql = textwrap.dedent(
-            """\
+        sql = textwrap.dedent("""\
             SELECT o.id, s.name
             FROM {{ ref('stg_orders') }} o
             JOIN {{ source('crm', 'contacts') }} s ON o.customer_id = s.id
-        """
-        )
+        """)
         node = parse_dbt_model(sql, "enriched")
         upstream = node.all_upstream
         assert "stg_orders" in upstream

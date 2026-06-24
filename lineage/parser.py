@@ -7,11 +7,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
 import sqlparse
-from sqlparse.sql import (
-    Identifier,
-    IdentifierList,
-    Parenthesis,
-)
+from sqlparse.sql import Identifier, IdentifierList, Parenthesis
 from sqlparse.tokens import CTE, DML, Keyword
 
 
